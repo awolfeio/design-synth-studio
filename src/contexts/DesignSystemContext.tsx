@@ -1,0 +1,385 @@
+
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { DesignSystem, PresetTheme, ColorToken, ComponentVariant } from '@/types/designTokens';
+
+// Default color token
+const defaultColorToken: ColorToken = {
+  hue: 210,
+  saturation: 100,
+  lightness: 50,
+  alpha: 1
+};
+
+// Default design system
+const defaultDesignSystem: DesignSystem = {
+  name: 'Default System',
+  colors: {
+    primary: { ...defaultColorToken, hue: 210 },  // Blue
+    secondary: { ...defaultColorToken, hue: 250, saturation: 80 }, // Purple
+    accent: { ...defaultColorToken, hue: 330, saturation: 90 },  // Pink
+    background: { ...defaultColorToken, saturation: 10, lightness: 98 },
+    foreground: { ...defaultColorToken, saturation: 10, lightness: 10 },
+    muted: { ...defaultColorToken, saturation: 10, lightness: 90 },
+    border: { ...defaultColorToken, saturation: 20, lightness: 85 },
+    success: { ...defaultColorToken, hue: 142, saturation: 70 }, // Green
+    warning: { ...defaultColorToken, hue: 38, saturation: 90 },  // Yellow 
+    destructive: { ...defaultColorToken, hue: 0, saturation: 80 }, // Red
+  },
+  fonts: {
+    base: {
+      family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      size: 16,
+      weight: 400,
+      lineHeight: 1.5,
+      letterSpacing: 0
+    },
+    heading: {
+      family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      size: 24,
+      weight: 700,
+      lineHeight: 1.2,
+      letterSpacing: -0.5
+    },
+    mono: {
+      family: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
+      size: 14,
+      weight: 400, 
+      lineHeight: 1.6,
+      letterSpacing: 0
+    }
+  },
+  spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80],
+  radius: {
+    small: 4,
+    medium: 8,
+    large: 16,
+    full: 9999
+  },
+  isDark: false
+};
+
+// Action types
+type ActionType =
+  | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number }
+  | { type: 'UPDATE_FONT'; fontName: string; property: string; value: string | number }
+  | { type: 'UPDATE_SPACING'; index: number; value: number }
+  | { type: 'UPDATE_SPACING_SCALE'; scale: number[] }
+  | { type: 'UPDATE_RADIUS'; radiusName: string; value: number }
+  | { type: 'TOGGLE_THEME' }
+  | { type: 'LOAD_PRESET'; preset: PresetTheme }
+  | { type: 'RESET' }
+  | { type: 'SET_SYSTEM'; system: DesignSystem }
+  | { type: 'UPDATE_SYSTEM_NAME'; name: string };
+
+// Context type
+type DesignSystemContextType = {
+  system: DesignSystem;
+  dispatch: React.Dispatch<ActionType>;
+  getCSS: () => string;
+  getTailwindConfig: () => Record<string, any>;
+  activatePreset: (preset: PresetTheme) => void;
+  resetSystem: () => void;
+  componentVariant: ComponentVariant;
+  setComponentVariant: (variant: ComponentVariant) => void;
+};
+
+// Create context
+const DesignSystemContext = createContext<DesignSystemContextType | undefined>(undefined);
+
+// Reducer function
+function designSystemReducer(state: DesignSystem, action: ActionType): DesignSystem {
+  switch (action.type) {
+    case 'UPDATE_COLOR':
+      return {
+        ...state,
+        colors: {
+          ...state.colors,
+          [action.tokenName]: {
+            ...state.colors[action.tokenName],
+            [action.property]: action.value
+          }
+        }
+      };
+    
+    case 'UPDATE_FONT':
+      return {
+        ...state,
+        fonts: {
+          ...state.fonts,
+          [action.fontName]: {
+            ...state.fonts[action.fontName],
+            [action.property]: action.value
+          }
+        }
+      };
+    
+    case 'UPDATE_SPACING':
+      const newSpacing = [...state.spacing];
+      newSpacing[action.index] = action.value;
+      return {
+        ...state,
+        spacing: newSpacing
+      };
+    
+    case 'UPDATE_SPACING_SCALE':
+      return {
+        ...state,
+        spacing: action.scale
+      };
+    
+    case 'UPDATE_RADIUS':
+      return {
+        ...state,
+        radius: {
+          ...state.radius,
+          [action.radiusName]: action.value
+        }
+      };
+    
+    case 'TOGGLE_THEME':
+      return {
+        ...state,
+        isDark: !state.isDark
+      };
+    
+    case 'LOAD_PRESET':
+      // This would be implemented to load predefined presets
+      return { ...getPreset(action.preset) };
+    
+    case 'RESET':
+      return { ...defaultDesignSystem };
+    
+    case 'SET_SYSTEM':
+      return { ...action.system };
+    
+    case 'UPDATE_SYSTEM_NAME':
+      return {
+        ...state,
+        name: action.name
+      };
+    
+    default:
+      return state;
+  }
+}
+
+// Utility function to convert HSL to CSS format
+function hslToCSS(color: ColorToken): string {
+  return `hsla(${color.hue}, ${color.saturation}%, ${color.lightness}%, ${color.alpha})`;
+}
+
+// Get a specific preset design system
+function getPreset(preset: PresetTheme): DesignSystem {
+  switch (preset) {
+    case 'minimal':
+      return {
+        ...defaultDesignSystem,
+        name: 'Minimal',
+        radius: {
+          small: 2,
+          medium: 4,
+          large: 8,
+          full: 9999
+        }
+      };
+    case 'brutalist':
+      return {
+        ...defaultDesignSystem,
+        name: 'Brutalist',
+        radius: {
+          small: 0,
+          medium: 0,
+          large: 0, 
+          full: 0
+        },
+        fonts: {
+          ...defaultDesignSystem.fonts,
+          base: {
+            ...defaultDesignSystem.fonts.base,
+            family: 'Courier New, monospace',
+            letterSpacing: 0.5
+          },
+          heading: {
+            ...defaultDesignSystem.fonts.heading,
+            family: 'Courier New, monospace',
+            weight: 800,
+            letterSpacing: 0
+          }
+        }
+      };
+    case 'neumorphic':
+      return {
+        ...defaultDesignSystem,
+        name: 'Neumorphic',
+        colors: {
+          ...defaultDesignSystem.colors,
+          background: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 95 },
+          muted: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 90 },
+          border: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 85 },
+        },
+        radius: {
+          small: 12,
+          medium: 16,
+          large: 24,
+          full: 9999
+        }
+      };
+    case 'glassmorphic':
+      return {
+        ...defaultDesignSystem,
+        name: 'Glassmorphic',
+        colors: {
+          ...defaultDesignSystem.colors,
+          primary: { ...defaultColorToken, hue: 210, alpha: 0.8 },
+          background: { ...defaultColorToken, lightness: 100, alpha: 0.8 },
+          muted: { ...defaultColorToken, lightness: 95, alpha: 0.7 },
+          border: { ...defaultColorToken, lightness: 80, alpha: 0.3 },
+        },
+        radius: {
+          small: 8,
+          medium: 12,
+          large: 20,
+          full: 9999
+        }
+      };
+    case 'colorful':
+      return {
+        ...defaultDesignSystem,
+        name: 'Colorful',
+        colors: {
+          primary: { ...defaultColorToken, hue: 250 }, // Purple
+          secondary: { ...defaultColorToken, hue: 330 }, // Pink
+          accent: { ...defaultColorToken, hue: 160 }, // Teal
+          background: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 98 },
+          foreground: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 10 },
+          muted: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 92 },
+          border: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 85 },
+          success: { ...defaultColorToken, hue: 142 },
+          warning: { ...defaultColorToken, hue: 35 },
+          destructive: { ...defaultColorToken, hue: 0 },
+        }
+      };
+    default:
+      return defaultDesignSystem;
+  }
+}
+
+// Provider component
+export const DesignSystemProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [system, dispatch] = useReducer(designSystemReducer, defaultDesignSystem);
+  const [componentVariant, setComponentVariant] = React.useState<ComponentVariant>('default');
+
+  // Generate CSS variables from design system
+  const getCSS = (): string => {
+    let cssVars = `:root {\n`;
+    
+    // Colors
+    Object.entries(system.colors).forEach(([name, color]) => {
+      cssVars += `  --color-${name}: ${hslToCSS(color)};\n`;
+    });
+    
+    // Fonts
+    Object.entries(system.fonts).forEach(([name, font]) => {
+      cssVars += `  --font-family-${name}: ${font.family};\n`;
+      cssVars += `  --font-size-${name}: ${font.size}px;\n`;
+      cssVars += `  --font-weight-${name}: ${font.weight};\n`;
+      cssVars += `  --line-height-${name}: ${font.lineHeight};\n`;
+      cssVars += `  --letter-spacing-${name}: ${font.letterSpacing}px;\n`;
+    });
+    
+    // Spacing
+    system.spacing.forEach((space, index) => {
+      cssVars += `  --space-${index}: ${space}px;\n`;
+    });
+    
+    // Radius
+    Object.entries(system.radius).forEach(([name, value]) => {
+      cssVars += `  --radius-${name}: ${value}px;\n`;
+    });
+    
+    cssVars += `}\n`;
+    return cssVars;
+  };
+  
+  // Generate Tailwind config from design system
+  const getTailwindConfig = () => {
+    const colors: Record<string, Record<string, string>> = {};
+    
+    // Convert colors to Tailwind format
+    Object.entries(system.colors).forEach(([name, color]) => {
+      colors[name] = { DEFAULT: hslToCSS(color) };
+    });
+    
+    // Create spacing scale for Tailwind
+    const spacing: Record<string, string> = {};
+    system.spacing.forEach((space, index) => {
+      spacing[index.toString()] = `${space}px`;
+    });
+    
+    // Create border radius config
+    const borderRadius: Record<string, string> = {};
+    Object.entries(system.radius).forEach(([name, value]) => {
+      borderRadius[name] = `${value}px`;
+    });
+    
+    // Create font family config
+    const fontFamily: Record<string, string[]> = {};
+    Object.entries(system.fonts).forEach(([name, font]) => {
+      fontFamily[name] = font.family.split(',').map(f => f.trim());
+    });
+    
+    return {
+      theme: {
+        colors,
+        spacing,
+        borderRadius,
+        fontFamily,
+      }
+    };
+  };
+
+  // Effect to update document with dark mode
+  useEffect(() => {
+    if (system.isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [system.isDark]);
+
+  // Activate preset theme
+  const activatePreset = (preset: PresetTheme) => {
+    dispatch({ type: 'LOAD_PRESET', preset });
+  };
+
+  // Reset to default
+  const resetSystem = () => {
+    dispatch({ type: 'RESET' });
+  };
+
+  return (
+    <DesignSystemContext.Provider 
+      value={{ 
+        system, 
+        dispatch, 
+        getCSS, 
+        getTailwindConfig, 
+        activatePreset,
+        resetSystem,
+        componentVariant,
+        setComponentVariant
+      }}
+    >
+      {children}
+    </DesignSystemContext.Provider>
+  );
+};
+
+// Custom hook to use the design system context
+export const useDesignSystem = () => {
+  const context = useContext(DesignSystemContext);
+  if (context === undefined) {
+    throw new Error('useDesignSystem must be used within a DesignSystemProvider');
+  }
+  return context;
+};
