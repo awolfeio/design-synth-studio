@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ColorControl } from '@/components/Controls/ColorControl';
+import { DesignSystemProvider } from '@/contexts/DesignSystemContext';
 
 const ColorSystem = () => {
   const colorTokens = [
@@ -17,14 +18,16 @@ const ColorSystem = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-semibold mb-6">Color System</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {colorTokens.map(({ name, label }) => (
-          <ColorControl key={name} tokenName={name} label={label} />
-        ))}
+    <DesignSystemProvider>
+      <div className="p-6 space-y-6">
+        <h2 className="text-2xl font-semibold mb-6">Color System</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {colorTokens.map(({ name, label }) => (
+            <ColorControl key={name} tokenName={name} label={label} />
+          ))}
+        </div>
       </div>
-    </div>
+    </DesignSystemProvider>
   );
 };
 
