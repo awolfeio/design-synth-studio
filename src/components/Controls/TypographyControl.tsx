@@ -19,7 +19,7 @@ export const TypographyControl: React.FC<TypographyControlProps> = ({ tokenName,
   const updateFontProperty = (property: keyof FontToken, value: string | number) => {
     dispatch({
       type: 'UPDATE_FONT',
-      tokenName,
+      fontName: tokenName,  // Changed from tokenName to fontName to match the action type
       property,
       value: typeof value === 'string' ? value : Number(value)
     });
