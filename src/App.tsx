@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ColorSystem from "./pages/ColorSystem";
 import Typography from "./pages/Typography";
+import RootLayout from "./components/Layout/RootLayout";
 
 const queryClient = new QueryClient();
 
@@ -17,11 +19,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/colors" element={<ColorSystem />} />
-          <Route path="/typography" element={<Typography />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route path="/" element={<RootLayout><Index /></RootLayout>} />
+          <Route path="/colors" element={<RootLayout><ColorSystem /></RootLayout>} />
+          <Route path="/typography" element={<RootLayout><Typography /></RootLayout>} />
+          <Route path="*" element={<RootLayout><NotFound /></RootLayout>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,7 +1,5 @@
-
 import React from 'react';
 import { TypographyControl } from '@/components/Controls/TypographyControl';
-import { DesignSystemProvider } from '@/contexts/DesignSystemContext';
 
 const Typography = () => {
   const fontTokens = [
@@ -11,16 +9,14 @@ const Typography = () => {
   ];
 
   return (
-    <DesignSystemProvider>
-      <div className="p-6 space-y-6">
-        <h2 className="text-2xl font-semibold mb-6">Typography System</h2>
-        <div className="space-y-8">
-          {fontTokens.map(({ name, label }) => (
-            <TypographyControl key={name} tokenName={name} label={label} />
-          ))}
-        </div>
+    <div className="p-6 space-y-6">
+      <h2 className="text-2xl font-semibold mb-6">Typography System</h2>
+      <div className="space-y-8">
+        {fontTokens.map(({ name, label }) => (
+          <TypographyControl key={name} tokenName={name} label={label} />
+        ))}
       </div>
-    </DesignSystemProvider>
+    </div>
   );
 };
 
