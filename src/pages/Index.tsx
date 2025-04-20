@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Palette, Type, Ruler, Radius, Square, Icons } from 'lucide-react';
+import { Palette, Type, Ruler, Radius, Square, Icon } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -41,7 +41,7 @@ const Index = () => {
     {
       title: 'Icons',
       description: 'Icon library and guidelines',
-      icon: <Icons className="h-6 w-6 text-pink-500" />,
+      icon: <Icon name="grid" className="h-6 w-6 text-pink-500" />,
       path: '/icons'
     }
   ];
