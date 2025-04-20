@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { TopBar } from './TopBar';
-import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
 import { Canvas } from './Canvas';
 import { BottomBar } from './BottomBar';
@@ -19,9 +18,6 @@ const AppLayout: React.FC = () => {
       
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        <LeftSidebar />
-        
         {/* Main Canvas */}
         <Canvas />
         
