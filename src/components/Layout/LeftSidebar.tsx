@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, BoxShadow, Grid } from 'lucide-react';
+import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, boxShadow as BoxShadow, Grid } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 type NavigationSection = 'overview' | 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases' | 'preview' | 'shadow' | 'icons';
