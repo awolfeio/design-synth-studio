@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '../ui/button';
-import { Palette, Type, Ruler, Radius, ArrowRightLeft } from 'lucide-react';
+import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-type NavigationSection = 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases';
+type NavigationSection = 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases' | 'preview';
 
 interface NavigationItem {
   id: NavigationSection;
@@ -23,7 +23,8 @@ export const LeftSidebar: React.FC = () => {
     { id: 'typography', icon: <Type className="h-5 w-5" />, label: 'Typography', path: '/typography' },
     { id: 'spacing', icon: <Ruler className="h-5 w-5" />, label: 'Spacing Scale', path: '/spacing' },
     { id: 'radius', icon: <Radius className="h-5 w-5" />, label: 'Border Radius', path: '/radius' },
-    { id: 'aliases', icon: <ArrowRightLeft className="h-5 w-5" />, label: 'Alias Tokens', path: '/aliases' }
+    { id: 'aliases', icon: <ArrowRightLeft className="h-5 w-5" />, label: 'Alias Tokens', path: '/aliases' },
+    { id: 'preview', icon: <Eye className="h-5 w-5" />, label: 'Preview', path: '/preview' }
   ];
 
   const handleNavigation = (path: string) => {
