@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, boxShadow as BoxShadow, Grid } from 'lucide-react';
+import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, Box, Grid } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 type NavigationSection = 'overview' | 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases' | 'preview' | 'shadow' | 'icons';
@@ -24,7 +24,7 @@ export const LeftSidebar: React.FC = () => {
     { id: 'typography', icon: <Type className="h-5 w-5" />, label: 'Typography', path: '/typography' },
     { id: 'spacing', icon: <Ruler className="h-5 w-5" />, label: 'Spacing Scale', path: '/spacing' },
     { id: 'radius', icon: <Radius className="h-5 w-5" />, label: 'Border Radius', path: '/radius' },
-    { id: 'shadow', icon: <BoxShadow className="h-5 w-5" />, label: 'Shadow', path: '/shadow' },
+    { id: 'shadow', icon: <Box className="h-5 w-5" />, label: 'Shadow', path: '/shadow' },
     { id: 'icons', icon: <Grid className="h-5 w-5" />, label: 'Icons', path: '/icons' },
     { id: 'aliases', icon: <ArrowRightLeft className="h-5 w-5" />, label: 'Alias Tokens', path: '/aliases' },
     { id: 'preview', icon: <Eye className="h-5 w-5" />, label: 'Preview', path: '/preview' }
