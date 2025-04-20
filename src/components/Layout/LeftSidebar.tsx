@@ -1,10 +1,10 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout } from 'lucide-react';
+import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, Shadow, Icons } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-type NavigationSection = 'overview' | 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases' | 'preview';
+type NavigationSection = 'overview' | 'colors' | 'typography' | 'spacing' | 'radius' | 'aliases' | 'preview' | 'shadow' | 'icons';
 
 interface NavigationItem {
   id: NavigationSection;
@@ -24,6 +24,8 @@ export const LeftSidebar: React.FC = () => {
     { id: 'typography', icon: <Type className="h-5 w-5" />, label: 'Typography', path: '/typography' },
     { id: 'spacing', icon: <Ruler className="h-5 w-5" />, label: 'Spacing Scale', path: '/spacing' },
     { id: 'radius', icon: <Radius className="h-5 w-5" />, label: 'Border Radius', path: '/radius' },
+    { id: 'shadow', icon: <Shadow className="h-5 w-5" />, label: 'Shadow', path: '/shadow' },
+    { id: 'icons', icon: <Icons className="h-5 w-5" />, label: 'Icons', path: '/icons' },
     { id: 'aliases', icon: <ArrowRightLeft className="h-5 w-5" />, label: 'Alias Tokens', path: '/aliases' },
     { id: 'preview', icon: <Eye className="h-5 w-5" />, label: 'Preview', path: '/preview' }
   ];
@@ -57,3 +59,4 @@ export const LeftSidebar: React.FC = () => {
     </div>
   );
 };
+
