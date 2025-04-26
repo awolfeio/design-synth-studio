@@ -1,19 +1,22 @@
+export type StepCurve = 'none' | 'skew-light' | 'skew-dark';
 
 export type ColorToken = {
   hue: number;
   saturation: number;
   lightness: number;
   alpha: number;
+  steps: number;
+  skewLightIntensity: number;
+  skewDarkIntensity: number;
 };
 
 export type ColorTokens = {
   primary: ColorToken;
   secondary: ColorToken;
   accent: ColorToken;
-  background: ColorToken;
-  foreground: ColorToken;
-  muted: ColorToken;
+  neutrals: ColorToken;
   border: ColorToken;
+  background: ColorToken;
   success: ColorToken;
   warning: ColorToken;
   destructive: ColorToken;

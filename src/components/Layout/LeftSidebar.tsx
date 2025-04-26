@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '../ui/button';
 import { Palette, Type, Ruler, Radius, ArrowRightLeft, Eye, Layout, Box, Grid } from 'lucide-react';
@@ -37,7 +36,9 @@ export const LeftSidebar: React.FC = () => {
   return (
     <div className="w-60 border-r border-border bg-sidebar flex flex-col overflow-hidden">
       <div className="p-4 font-medium text-sidebar-foreground border-b border-sidebar-border">
-        Foundation Setup
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900 }}>
+          Design Synth Studio
+        </span>
       </div>
       
       <nav className="flex-1 overflow-y-auto p-2">

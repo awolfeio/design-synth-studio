@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { DesignSystem, PresetTheme, ColorToken, ComponentVariant } from '@/types/designTokens';
 
@@ -7,7 +6,10 @@ const defaultColorToken: ColorToken = {
   hue: 210,
   saturation: 100,
   lightness: 50,
-  alpha: 1
+  alpha: 1,
+  steps: 9,
+  skewLightIntensity: 0,
+  skewDarkIntensity: 0
 };
 
 // Default design system
@@ -17,10 +19,9 @@ const defaultDesignSystem: DesignSystem = {
     primary: { ...defaultColorToken, hue: 210 },  // Blue
     secondary: { ...defaultColorToken, hue: 250, saturation: 80 }, // Purple
     accent: { ...defaultColorToken, hue: 330, saturation: 90 },  // Pink
-    background: { ...defaultColorToken, saturation: 10, lightness: 98 },
-    foreground: { ...defaultColorToken, saturation: 10, lightness: 10 },
-    muted: { ...defaultColorToken, saturation: 10, lightness: 90 },
+    neutrals: { ...defaultColorToken, saturation: 10, lightness: 50 },
     border: { ...defaultColorToken, saturation: 20, lightness: 85 },
+    background: { ...defaultColorToken, saturation: 5, lightness: 98 }, // Background color
     success: { ...defaultColorToken, hue: 142, saturation: 70 }, // Green
     warning: { ...defaultColorToken, hue: 38, saturation: 90 },  // Yellow 
     destructive: { ...defaultColorToken, hue: 0, saturation: 80 }, // Red
@@ -60,7 +61,7 @@ const defaultDesignSystem: DesignSystem = {
 
 // Action types
 type ActionType =
-  | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number }
+  | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number | string }
   | { type: 'UPDATE_FONT'; fontName: string; property: string; value: string | number }
   | { type: 'UPDATE_SPACING'; index: number; value: number }
   | { type: 'UPDATE_SPACING_SCALE'; scale: number[] }
@@ -76,7 +77,7 @@ type DesignSystemContextType = {
   system: DesignSystem;
   dispatch: React.Dispatch<ActionType>;
   getCSS: () => string;
-  getTailwindConfig: () => Record<string, any>;
+  getTailwindConfig: () => Record<string, unknown>;
   activatePreset: (preset: PresetTheme) => void;
   resetSystem: () => void;
   componentVariant: ComponentVariant;
@@ -89,17 +90,35 @@ const DesignSystemContext = createContext<DesignSystemContextType | undefined>(u
 // Reducer function
 function designSystemReducer(state: DesignSystem, action: ActionType): DesignSystem {
   switch (action.type) {
-    case 'UPDATE_COLOR':
+    case 'UPDATE_COLOR': {
+      const newColors = { ...state.colors };
+      const targetToken = { ...newColors[action.tokenName] };
+      let numValue: number;
+      
+      // Update the specified property with the new value
+      if (typeof action.property === 'string' && action.property in targetToken) {
+        // Handle the property type correctly based on the ColorToken properties
+        if (action.property === 'hue' || 
+            action.property === 'saturation' || 
+            action.property === 'lightness' || 
+            action.property === 'alpha' || 
+            action.property === 'steps' ||
+            action.property === 'skewLightIntensity' ||
+            action.property === 'skewDarkIntensity') {
+          // Ensure we're assigning a number
+          numValue = typeof action.value === 'string' ? parseFloat(action.value) : action.value;
+          targetToken[action.property] = numValue;
+        }
+      }
+      
+      // Update the token in the colors object
+      newColors[action.tokenName] = targetToken;
+      
       return {
         ...state,
-        colors: {
-          ...state.colors,
-          [action.tokenName]: {
-            ...state.colors[action.tokenName],
-            [action.property]: action.value
-          }
-        }
+        colors: newColors
       };
+    }
     
     case 'UPDATE_FONT':
       return {
@@ -113,13 +132,14 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
         }
       };
     
-    case 'UPDATE_SPACING':
+    case 'UPDATE_SPACING': {
       const newSpacing = [...state.spacing];
       newSpacing[action.index] = action.value;
       return {
         ...state,
         spacing: newSpacing
       };
+    }
     
     case 'UPDATE_SPACING_SCALE':
       return {
@@ -170,97 +190,104 @@ function hslToCSS(color: ColorToken): string {
 
 // Get a specific preset design system
 function getPreset(preset: PresetTheme): DesignSystem {
-  switch (preset) {
-    case 'minimal':
-      return {
-        ...defaultDesignSystem,
-        name: 'Minimal',
-        radius: {
-          small: 2,
-          medium: 4,
-          large: 8,
-          full: 9999
-        }
-      };
-    case 'brutalist':
-      return {
-        ...defaultDesignSystem,
-        name: 'Brutalist',
-        radius: {
-          small: 0,
-          medium: 0,
-          large: 0, 
-          full: 0
+  if (preset === 'minimal') {
+    return {
+      ...defaultDesignSystem,
+      name: 'Minimal',
+      colors: {
+        ...defaultDesignSystem.colors,
+        background: { ...defaultColorToken, saturation: 3, lightness: 98 },
+      },
+      radius: {
+        small: 2,
+        medium: 4,
+        large: 8,
+        full: 9999
+      }
+    };
+  } else if (preset === 'brutalist') {
+    return {
+      ...defaultDesignSystem,
+      name: 'Brutalist',
+      colors: {
+        ...defaultDesignSystem.colors,
+        background: { ...defaultColorToken, saturation: 0, lightness: 100 },
+      },
+      radius: {
+        small: 0,
+        medium: 0,
+        large: 0, 
+        full: 0
+      },
+      fonts: {
+        ...defaultDesignSystem.fonts,
+        base: {
+          ...defaultDesignSystem.fonts.base,
+          family: 'Courier New, monospace',
+          letterSpacing: 0.5
         },
-        fonts: {
-          ...defaultDesignSystem.fonts,
-          base: {
-            ...defaultDesignSystem.fonts.base,
-            family: 'Courier New, monospace',
-            letterSpacing: 0.5
-          },
-          heading: {
-            ...defaultDesignSystem.fonts.heading,
-            family: 'Courier New, monospace',
-            weight: 800,
-            letterSpacing: 0
-          }
+        heading: {
+          ...defaultDesignSystem.fonts.heading,
+          family: 'Courier New, monospace',
+          weight: 800,
+          letterSpacing: 0
         }
-      };
-    case 'neumorphic':
-      return {
-        ...defaultDesignSystem,
-        name: 'Neumorphic',
-        colors: {
-          ...defaultDesignSystem.colors,
-          background: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 95 },
-          muted: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 90 },
-          border: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 85 },
-        },
-        radius: {
-          small: 12,
-          medium: 16,
-          large: 24,
-          full: 9999
-        }
-      };
-    case 'glassmorphic':
-      return {
-        ...defaultDesignSystem,
-        name: 'Glassmorphic',
-        colors: {
-          ...defaultDesignSystem.colors,
-          primary: { ...defaultColorToken, hue: 210, alpha: 0.8 },
-          background: { ...defaultColorToken, lightness: 100, alpha: 0.8 },
-          muted: { ...defaultColorToken, lightness: 95, alpha: 0.7 },
-          border: { ...defaultColorToken, lightness: 80, alpha: 0.3 },
-        },
-        radius: {
-          small: 8,
-          medium: 12,
-          large: 20,
-          full: 9999
-        }
-      };
-    case 'colorful':
-      return {
-        ...defaultDesignSystem,
-        name: 'Colorful',
-        colors: {
-          primary: { ...defaultColorToken, hue: 250 }, // Purple
-          secondary: { ...defaultColorToken, hue: 330 }, // Pink
-          accent: { ...defaultColorToken, hue: 160 }, // Teal
-          background: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 98 },
-          foreground: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 10 },
-          muted: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 92 },
-          border: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 85 },
-          success: { ...defaultColorToken, hue: 142 },
-          warning: { ...defaultColorToken, hue: 35 },
-          destructive: { ...defaultColorToken, hue: 0 },
-        }
-      };
-    default:
-      return defaultDesignSystem;
+      }
+    };
+  } else if (preset === 'neumorphic') {
+    return {
+      ...defaultDesignSystem,
+      name: 'Neumorphic',
+      colors: {
+        ...defaultDesignSystem.colors,
+        neutrals: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 95 },
+        border: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 85 },
+        background: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 98 },
+      },
+      radius: {
+        small: 12,
+        medium: 16,
+        large: 24,
+        full: 9999
+      }
+    };
+  } else if (preset === 'glassmorphic') {
+    return {
+      ...defaultDesignSystem,
+      name: 'Glassmorphic',
+      colors: {
+        ...defaultDesignSystem.colors,
+        primary: { ...defaultColorToken, hue: 210, alpha: 0.8 },
+        neutrals: { ...defaultColorToken, lightness: 95, alpha: 0.8 },
+        border: { ...defaultColorToken, lightness: 80, alpha: 0.3 },
+        background: { ...defaultColorToken, saturation: 5, lightness: 98, alpha: 0.9 },
+      },
+      radius: {
+        small: 8,
+        medium: 12,
+        large: 20,
+        full: 9999
+      }
+    };
+  } else if (preset === 'colorful') {
+    return {
+      ...defaultDesignSystem,
+      name: 'Colorful',
+      colors: {
+        ...defaultDesignSystem.colors,
+        primary: { ...defaultColorToken, hue: 250 }, // Purple
+        secondary: { ...defaultColorToken, hue: 190 }, // Teal
+        accent: { ...defaultColorToken, hue: 40 }, // Gold
+        neutrals: { ...defaultColorToken, saturation: 5, lightness: 95 },
+        border: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 85 },
+        background: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 98 },
+        success: { ...defaultColorToken, hue: 142, saturation: 80 },
+        warning: { ...defaultColorToken, hue: 38, saturation: 100 },
+        destructive: { ...defaultColorToken, hue: 0, saturation: 90 },
+      }
+    };
+  } else {
+    return { ...defaultDesignSystem };
   }
 }
 

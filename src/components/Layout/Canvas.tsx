@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { Button } from '../ui/button';
@@ -33,6 +32,17 @@ export const Canvas: React.FC = () => {
     }).join('\n');
     
     return `${colorVars}\n${radiusVars}`;
+  };
+
+  // Use default values if background is undefined
+  const background = system.colors.background || {
+    hue: 210,
+    saturation: 5,
+    lightness: 98,
+    alpha: 1,
+    steps: 9,
+    skewLightIntensity: 0,
+    skewDarkIntensity: 0
   };
 
   return (
@@ -86,8 +96,8 @@ export const Canvas: React.FC = () => {
             'max-w-5xl'
           } w-full transition-all`}
           style={{ 
-            '--background-light': `hsl(${system.colors.background.hue}, ${system.colors.background.saturation}%, ${system.colors.background.lightness}%)`,
-            '--background-dark': `hsl(${system.colors.background.hue}, ${system.colors.background.saturation}%, 10%)` 
+            '--background-light': `hsl(${background.hue}, ${background.saturation}%, ${background.lightness}%)`,
+            '--background-dark': `hsl(${background.hue}, ${background.saturation}%, 10%)` 
           } as React.CSSProperties}
         >
           {/* Sample Components Preview */}

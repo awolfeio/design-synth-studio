@@ -1,0 +1,5 @@
+/* Add a class for the logo font that uses Plus Jakarta Sans */
+.logo-font {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+} 
