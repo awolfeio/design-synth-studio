@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { DesignSystem, PresetTheme, ColorToken, ComponentVariant } from '@/types/designTokens';
+import { DesignSystem, PresetTheme, ColorToken, ComponentVariant, ColorTokens } from '@/types/designTokens';
 
 // Default color token
 const defaultColorToken: ColorToken = {
@@ -7,7 +7,7 @@ const defaultColorToken: ColorToken = {
   saturation: 100,
   lightness: 50,
   alpha: 1,
-  steps: 9,
+  steps: 12,
   skewLightIntensity: 0,
   skewDarkIntensity: 0
 };
@@ -16,15 +16,15 @@ const defaultColorToken: ColorToken = {
 const defaultDesignSystem: DesignSystem = {
   name: 'Default System',
   colors: {
-    primary: { ...defaultColorToken, hue: 210 },  // Blue
-    secondary: { ...defaultColorToken, hue: 250, saturation: 80 }, // Purple
-    accent: { ...defaultColorToken, hue: 330, saturation: 90 },  // Pink
-    neutrals: { ...defaultColorToken, saturation: 10, lightness: 50 },
+    primary: { ...defaultColorToken, hue: 246, saturation: 98, lightness: 58, primaryStepIndex: 5 },  // 412BFD
+    secondary: { ...defaultColorToken, hue: 180, saturation: 75, lightness: 68, primaryStepIndex: 5 }, // 6FEDEE
+    accent: { ...defaultColorToken, hue: 27, saturation: 100, lightness: 50, primaryStepIndex: 5 },  // FF7200
+    neutrals: { ...defaultColorToken, hue: 210, saturation: 14, lightness: 11, steps: 12, primaryStepIndex: 11 }, // #181d20 at step 1000
     border: { ...defaultColorToken, saturation: 20, lightness: 85 },
     background: { ...defaultColorToken, saturation: 5, lightness: 98 }, // Background color
-    success: { ...defaultColorToken, hue: 142, saturation: 70 }, // Green
-    warning: { ...defaultColorToken, hue: 38, saturation: 90 },  // Yellow 
-    destructive: { ...defaultColorToken, hue: 0, saturation: 80 }, // Red
+    success: { ...defaultColorToken, hue: 142, saturation: 70, steps: 4, primaryStepIndex: 1 }, // Green - fewer steps
+    warning: { ...defaultColorToken, hue: 38, saturation: 90, steps: 4, primaryStepIndex: 1 },  // Yellow - fewer steps
+    destructive: { ...defaultColorToken, hue: 0, saturation: 80, steps: 4, primaryStepIndex: 1 }, // Red - fewer steps
   },
   fonts: {
     base: {
@@ -39,7 +39,8 @@ const defaultDesignSystem: DesignSystem = {
       size: 24,
       weight: 700,
       lineHeight: 1.2,
-      letterSpacing: -0.5
+      letterSpacing: -0.5,
+      headingScale: 1.25
     },
     mono: {
       family: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
@@ -82,6 +83,8 @@ type DesignSystemContextType = {
   resetSystem: () => void;
   componentVariant: ComponentVariant;
   setComponentVariant: (variant: ComponentVariant) => void;
+  leftColumnWidth: number;
+  setLeftColumnWidth: (width: number) => void;
 };
 
 // Create context
@@ -104,15 +107,70 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
             action.property === 'alpha' || 
             action.property === 'steps' ||
             action.property === 'skewLightIntensity' ||
-            action.property === 'skewDarkIntensity') {
+            action.property === 'skewDarkIntensity' ||
+            action.property === 'primaryStepIndex') {
           // Ensure we're assigning a number
           numValue = typeof action.value === 'string' ? parseFloat(action.value) : action.value;
+          
+          // Special handling for neutrals saturation - cap at 15%
+          if (action.tokenName === 'neutrals' && action.property === 'saturation') {
+            numValue = Math.min(numValue, 15);
+          }
+          
           targetToken[action.property] = numValue;
         }
       }
       
       // Update the token in the colors object
       newColors[action.tokenName] = targetToken;
+      
+      // Bind step quantities for primary, secondary, and accent
+      if (action.property === 'steps' && 
+          (action.tokenName === 'primary' || 
+           action.tokenName === 'secondary' || 
+           action.tokenName === 'accent')) {
+        // Update all three core colors to have the same number of steps
+        const stepsValue = targetToken.steps;
+        newColors.primary = { ...newColors.primary, steps: stepsValue };
+        newColors.secondary = { ...newColors.secondary, steps: stepsValue };
+        newColors.accent = { ...newColors.accent, steps: stepsValue };
+      }
+      
+      // Bind step quantities for utility colors (success, warning, destructive)
+      if (action.property === 'steps' && 
+          (action.tokenName === 'success' || 
+           action.tokenName === 'warning' || 
+           action.tokenName === 'destructive')) {
+        // Update all three utility colors to have the same number of steps
+        const stepsValue = targetToken.steps;
+        newColors.success = { ...newColors.success, steps: stepsValue };
+        newColors.warning = { ...newColors.warning, steps: stepsValue };
+        newColors.destructive = { ...newColors.destructive, steps: stepsValue };
+      }
+      
+      // Bind primary step positioning for core colors (primary, secondary, accent)
+      if (action.property === 'primaryStepIndex' && 
+          (action.tokenName === 'primary' || 
+           action.tokenName === 'secondary' || 
+           action.tokenName === 'accent')) {
+        // Update all three core colors to have the same primary step position
+        const primaryStepValue = targetToken.primaryStepIndex;
+        newColors.primary = { ...newColors.primary, primaryStepIndex: primaryStepValue };
+        newColors.secondary = { ...newColors.secondary, primaryStepIndex: primaryStepValue };
+        newColors.accent = { ...newColors.accent, primaryStepIndex: primaryStepValue };
+      }
+      
+      // Bind primary step positioning for utility colors (success, warning, destructive)
+      if (action.property === 'primaryStepIndex' && 
+          (action.tokenName === 'success' || 
+           action.tokenName === 'warning' || 
+           action.tokenName === 'destructive')) {
+        // Update all three utility colors to have the same primary step position
+        const primaryStepValue = targetToken.primaryStepIndex;
+        newColors.success = { ...newColors.success, primaryStepIndex: primaryStepValue };
+        newColors.warning = { ...newColors.warning, primaryStepIndex: primaryStepValue };
+        newColors.destructive = { ...newColors.destructive, primaryStepIndex: primaryStepValue };
+      }
       
       return {
         ...state,
@@ -188,113 +246,334 @@ function hslToCSS(color: ColorToken): string {
   return `hsla(${color.hue}, ${color.saturation}%, ${color.lightness}%, ${color.alpha})`;
 }
 
+// Helper to create a consistent design system with proper step counts
+function createConsistentColorSteps(colors: ColorTokens): ColorTokens {
+  // Ensure we have a copy to work with
+  const newColors = { ...colors };
+  
+  // Set primary/secondary/accent to the same step count (use primary's value or default to 9)
+  const primarySteps = newColors.primary?.steps || 9;
+  newColors.primary = { ...newColors.primary, steps: primarySteps };
+  newColors.secondary = { ...newColors.secondary, steps: primarySteps };
+  newColors.accent = { ...newColors.accent, steps: primarySteps };
+  
+  // Set neutrals to 12 steps if not already specified
+  newColors.neutrals = { ...newColors.neutrals, steps: newColors.neutrals?.steps || 12 };
+  
+  // Set utility colors to 4 steps (unless already specified)
+  newColors.success = { ...newColors.success, steps: newColors.success?.steps || 4 };
+  newColors.warning = { ...newColors.warning, steps: newColors.warning?.steps || 4 };
+  newColors.destructive = { ...newColors.destructive, steps: newColors.destructive?.steps || 4 };
+  
+  return newColors;
+}
+
 // Get a specific preset design system
-function getPreset(preset: PresetTheme): DesignSystem {
-  if (preset === 'minimal') {
-    return {
-      ...defaultDesignSystem,
-      name: 'Minimal',
-      colors: {
-        ...defaultDesignSystem.colors,
-        background: { ...defaultColorToken, saturation: 3, lightness: 98 },
-      },
-      radius: {
-        small: 2,
-        medium: 4,
-        large: 8,
-        full: 9999
-      }
-    };
-  } else if (preset === 'brutalist') {
-    return {
-      ...defaultDesignSystem,
-      name: 'Brutalist',
-      colors: {
-        ...defaultDesignSystem.colors,
-        background: { ...defaultColorToken, saturation: 0, lightness: 100 },
-      },
-      radius: {
-        small: 0,
-        medium: 0,
-        large: 0, 
-        full: 0
-      },
-      fonts: {
-        ...defaultDesignSystem.fonts,
-        base: {
-          ...defaultDesignSystem.fonts.base,
-          family: 'Courier New, monospace',
-          letterSpacing: 0.5
+function getPreset(theme: PresetTheme): DesignSystem {
+  let preset: DesignSystem = { ...defaultDesignSystem };
+
+  switch (theme) {
+    case 'minimal': {
+      preset = {
+        ...defaultDesignSystem,
+        colors: createConsistentColorSteps({
+          ...defaultDesignSystem.colors,
+          primary: { 
+            hue: 210, 
+            saturation: 80, 
+            lightness: 55, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          secondary: { 
+            hue: 260, 
+            saturation: 60, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          accent: { 
+            hue: 30, 
+            saturation: 90, 
+            lightness: 65, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          neutrals: { 
+            hue: 210, 
+            saturation: 10, 
+            lightness: 50, 
+            steps: 12,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          }
+        }),
+        radius: {
+          small: 4,
+          medium: 8,
+          large: 16,
+          full: 9999
         },
-        heading: {
-          ...defaultDesignSystem.fonts.heading,
-          family: 'Courier New, monospace',
-          weight: 800,
-          letterSpacing: 0
-        }
-      }
-    };
-  } else if (preset === 'neumorphic') {
-    return {
-      ...defaultDesignSystem,
-      name: 'Neumorphic',
-      colors: {
-        ...defaultDesignSystem.colors,
-        neutrals: { ...defaultColorToken, hue: 210, saturation: 10, lightness: 95 },
-        border: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 85 },
-        background: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 98 },
-      },
-      radius: {
-        small: 12,
-        medium: 16,
-        large: 24,
-        full: 9999
-      }
-    };
-  } else if (preset === 'glassmorphic') {
-    return {
-      ...defaultDesignSystem,
-      name: 'Glassmorphic',
-      colors: {
-        ...defaultDesignSystem.colors,
-        primary: { ...defaultColorToken, hue: 210, alpha: 0.8 },
-        neutrals: { ...defaultColorToken, lightness: 95, alpha: 0.8 },
-        border: { ...defaultColorToken, lightness: 80, alpha: 0.3 },
-        background: { ...defaultColorToken, saturation: 5, lightness: 98, alpha: 0.9 },
-      },
-      radius: {
-        small: 8,
-        medium: 12,
-        large: 20,
-        full: 9999
-      }
-    };
-  } else if (preset === 'colorful') {
-    return {
-      ...defaultDesignSystem,
-      name: 'Colorful',
-      colors: {
-        ...defaultDesignSystem.colors,
-        primary: { ...defaultColorToken, hue: 250 }, // Purple
-        secondary: { ...defaultColorToken, hue: 190 }, // Teal
-        accent: { ...defaultColorToken, hue: 40 }, // Gold
-        neutrals: { ...defaultColorToken, saturation: 5, lightness: 95 },
-        border: { ...defaultColorToken, hue: 210, saturation: 15, lightness: 85 },
-        background: { ...defaultColorToken, hue: 210, saturation: 5, lightness: 98 },
-        success: { ...defaultColorToken, hue: 142, saturation: 80 },
-        warning: { ...defaultColorToken, hue: 38, saturation: 100 },
-        destructive: { ...defaultColorToken, hue: 0, saturation: 90 },
-      }
-    };
-  } else {
-    return { ...defaultDesignSystem };
+        spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80]
+      };
+      break;
+    }
+    
+    case 'brutalist': {
+      preset = {
+        ...defaultDesignSystem,
+        colors: createConsistentColorSteps({
+          ...defaultDesignSystem.colors,
+          primary: { 
+            hue: 0, 
+            saturation: 0, 
+            lightness: 0, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          secondary: { 
+            hue: 0, 
+            saturation: 0, 
+            lightness: 30, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          accent: { 
+            hue: 0, 
+            saturation: 80, 
+            lightness: 50, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          neutrals: { 
+            hue: 0, 
+            saturation: 0, 
+            lightness: 50, 
+            steps: 12,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          }
+        }),
+        radius: {
+          small: 0,
+          medium: 0,
+          large: 0,
+          full: 9999
+        },
+        spacing: [0, 4, 8, 16, 24, 32, 48, 64, 80, 96, 128]
+      };
+      break;
+    }
+    
+    case 'neumorphic': {
+      preset = {
+        ...defaultDesignSystem,
+        colors: createConsistentColorSteps({
+          ...defaultDesignSystem.colors,
+          primary: { 
+            hue: 210, 
+            saturation: 30, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          secondary: { 
+            hue: 240, 
+            saturation: 30, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          accent: { 
+            hue: 280, 
+            saturation: 30, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          neutrals: { 
+            hue: 220, 
+            saturation: 10, 
+            lightness: 85, 
+            steps: 12,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          }
+        }),
+        radius: {
+          small: 16,
+          medium: 24,
+          large: 32,
+          full: 9999
+        },
+        spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80]
+      };
+      break;
+    }
+    
+    case 'glassmorphic': {
+      preset = {
+        ...defaultDesignSystem,
+        colors: createConsistentColorSteps({
+          ...defaultDesignSystem.colors,
+          primary: { 
+            hue: 200, 
+            saturation: 70, 
+            lightness: 50, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          secondary: { 
+            hue: 250, 
+            saturation: 70, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          accent: { 
+            hue: 300, 
+            saturation: 70, 
+            lightness: 50, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          neutrals: { 
+            hue: 220, 
+            saturation: 20, 
+            lightness: 90, 
+            steps: 12,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          }
+        }),
+        radius: {
+          small: 12,
+          medium: 16,
+          large: 24,
+          full: 9999
+        },
+        spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80]
+      };
+      break;
+    }
+    
+    case 'colorful': {
+      preset = {
+        ...defaultDesignSystem,
+        colors: createConsistentColorSteps({
+          ...defaultDesignSystem.colors,
+          primary: { 
+            hue: 210, 
+            saturation: 100, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          secondary: { 
+            hue: 280, 
+            saturation: 100, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          accent: { 
+            hue: 30, 
+            saturation: 100, 
+            lightness: 60, 
+            steps: 9,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          neutrals: { 
+            hue: 220, 
+            saturation: 5, 
+            lightness: 50, 
+            steps: 12,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          success: {
+            hue: 120,
+            saturation: 100,
+            lightness: 35,
+            steps: 6,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          warning: {
+            hue: 40,
+            saturation: 100,
+            lightness: 50,
+            steps: 6,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          },
+          destructive: {
+            hue: 0,
+            saturation: 100,
+            lightness: 50,
+            steps: 6,
+            alpha: 1,
+            skewLightIntensity: 0,
+            skewDarkIntensity: 0
+          }
+        }),
+        radius: {
+          small: 8,
+          medium: 12,
+          large: 20,
+          full: 9999
+        },
+        spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80]
+      };
+      break;
+    }
   }
+
+  return preset;
 }
 
 // Provider component
 export const DesignSystemProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [system, dispatch] = useReducer(designSystemReducer, defaultDesignSystem);
   const [componentVariant, setComponentVariant] = React.useState<ComponentVariant>('default');
+  const [leftColumnWidth, setLeftColumnWidth] = React.useState<number>(33);
 
   // Generate CSS variables from design system
   const getCSS = (): string => {
@@ -394,7 +673,9 @@ export const DesignSystemProvider: React.FC<{ children: React.ReactNode }> = ({ 
         activatePreset,
         resetSystem,
         componentVariant,
-        setComponentVariant
+        setComponentVariant,
+        leftColumnWidth,
+        setLeftColumnWidth
       }}
     >
       {children}

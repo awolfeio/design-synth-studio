@@ -34,7 +34,7 @@ export const LeftSidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-60 border-r border-border bg-sidebar flex flex-col overflow-hidden">
+    <div className="w-60 bg-white flex flex-col overflow-hidden rounded-2xl fixed top-3 left-3 bottom-3" style={{ boxShadow: '0 0 4px rgba(0, 0, 0, 0.08), 0 0 16px rgba(0, 0, 0, 0.06), 0 0 24px rgba(0, 0, 0, 0.04)' }}>
       <div className="p-4 font-medium text-sidebar-foreground border-b border-sidebar-border">
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900 }}>
           Design Synth Studio
@@ -50,6 +50,7 @@ export const LeftSidebar: React.FC = () => {
             className={`w-full justify-start mb-1 ${
               currentPath === item.path ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''
             }`}
+            style={{ padding: '1rem' }}
             onClick={() => handleNavigation(item.path)}
           >
             <span className="mr-3">{item.icon}</span>

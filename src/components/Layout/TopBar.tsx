@@ -26,11 +26,30 @@ export const TopBar: React.FC<TopBarProps> = ({ onTokenViewerOpen }) => {
 
   const presets: PresetTheme[] = ['minimal', 'brutalist', 'neumorphic', 'glassmorphic', 'colorful'];
 
+  // Create CSS variables from the design system
+  const getCSSVariables = () => {
+    const primary = system.colors.primary;
+    const secondary = system.colors.secondary;
+    const accent = system.colors.accent;
+    const destructive = system.colors.destructive;
+    
+    return {
+      '--primary': `${primary.hue} ${primary.saturation}% ${primary.lightness}%`,
+      '--primary-foreground': primary.lightness > 50 ? '0 0% 0%' : '0 0% 100%',
+      '--secondary': `${secondary.hue} ${secondary.saturation}% ${secondary.lightness}%`,
+      '--secondary-foreground': secondary.lightness > 50 ? '0 0% 0%' : '0 0% 100%',
+      '--accent': `${primary.hue} ${Math.max(primary.saturation - 40, 5)}% ${system.isDark ? 15 : 96}%`, // Subtle hover color
+      '--accent-foreground': system.isDark ? '0 0% 100%' : '0 0% 0%',
+      '--destructive': `${destructive.hue} ${destructive.saturation}% ${destructive.lightness}%`,
+      '--destructive-foreground': destructive.lightness > 50 ? '0 0% 0%' : '0 0% 100%',
+      '--ring': `${primary.hue} ${primary.saturation}% ${primary.lightness}%`,
+    } as React.CSSProperties;
+  };
+
   return (
-    <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-background">
+    <div className="h-14 border-b border-border flex items-center justify-between px-4 bg-background" style={getCSSVariables()}>
       <div className="flex items-center space-x-2">
-        <h1 className="text-lg font-bold">Design System Generator</h1>
-        <span className="text-sm text-muted-foreground">{system.name}</span>
+        <h1 className="text-lg font-bold">Preview</h1>
       </div>
 
       <div className="flex items-center space-x-3">

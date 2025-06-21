@@ -9,7 +9,7 @@ const Typography = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="py-6 space-y-6">
       <h2 className="text-2xl font-semibold mb-6">Typography System</h2>
       <div className="space-y-8">
         {fontTokens.map(({ name, label }) => (

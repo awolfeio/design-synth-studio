@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ColorControl } from '@/components/Controls/ColorControl';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const ColorSystem = () => {
+  const [showSwatchData, setShowSwatchData] = useState(false);
+  
   const primitiveTokens = [
     { name: 'primary', label: 'Primary Color' },
     { name: 'secondary', label: 'Secondary Color' },
@@ -17,8 +21,21 @@ const ColorSystem = () => {
   ];
 
   return (
-    <div className="p-6 space-y-10">
-      <h2 className="text-2xl font-semibold mb-2">Color System</h2>
+    <div className="py-6 space-y-10">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold">Color System</h2>
+        
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="show-swatch-data" className="text-sm">
+            Show Contrast Compliance
+          </Label>
+          <Switch 
+            id="show-swatch-data" 
+            checked={showSwatchData} 
+            onCheckedChange={setShowSwatchData} 
+          />
+        </div>
+      </div>
       
       <div className="space-y-10">
         <div>
@@ -30,6 +47,7 @@ const ColorSystem = () => {
                 tokenName={name} 
                 label={label}
                 showSteps={true}
+                showContrastData={showSwatchData}
               />
             ))}
           </div>
@@ -43,6 +61,7 @@ const ColorSystem = () => {
                 key={name} 
                 tokenName={name} 
                 label={label}
+                showContrastData={showSwatchData}
               />
             ))}
           </div>

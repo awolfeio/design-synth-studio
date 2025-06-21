@@ -8,6 +8,7 @@ export type ColorToken = {
   steps: number;
   skewLightIntensity: number;
   skewDarkIntensity: number;
+  primaryStepIndex?: number; // Optional - only used for neutrals
 };
 
 export type ColorTokens = {
@@ -29,6 +30,7 @@ export type FontToken = {
   weight: number;
   lineHeight: number;
   letterSpacing: number;
+  headingScale?: number; // Only applies to heading fonts
 };
 
 export type FontTokens = {
