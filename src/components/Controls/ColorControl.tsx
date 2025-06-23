@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { useColorControl } from '@/contexts/ColorControlContext';
+import { useContrastCheck } from '@/contexts/ContrastCheckContext';
 import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
@@ -8,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ColorToken } from '@/types/designTokens';
 import { HexColorPicker } from 'react-colorful';
 import { hslaToHex, hexToHsla } from '@/lib/colorUtils';
+import { ContrastColorPicker } from './ContrastColorPicker';
+import { generateLchColorScale } from '@/lib/lchColorUtils';
+import { generateEasedSteps, generateDualEasedSteps, generateSmartSaturationSteps } from '@/lib/easingUtils';
+import { StepDistributionGraph } from '../Display/StepDistributionGraph';
 
 // Helper function to calculate contrast ratio
 // Convert hex to RGB
@@ -135,7 +140,8 @@ export const ColorControl: React.FC<ColorControlProps> = ({
   showContrastData = true
 }) => {
   const { system, dispatch, leftColumnWidth, setLeftColumnWidth } = useDesignSystem();
-  const { setActiveColorControl, setControlProps } = useColorControl();
+  const { activeColorControl, setActiveColorControl, setControlProps } = useColorControl();
+  const { comparisonColors } = useContrastCheck();
   const color = system.colors[tokenName];
   const [isPickerOpen, setIsPickerOpen] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -143,13 +149,46 @@ export const ColorControl: React.FC<ColorControlProps> = ({
   const [swatchWidth, setSwatchWidth] = React.useState(0);
   const swatchContainerRef = React.useRef<HTMLDivElement>(null);
   
-  // Convert current HSL values to hex for the color picker
-  const colorHex = hslaToHex(color.hue, color.saturation, color.lightness, color.alpha);
+  // Check if this control is active
+  const isActive = activeColorControl === tokenName;
   
-  // Update hex input when color changes
+  // Memoize the colorHex calculation to prevent unnecessary recomputation
+  const colorHex = React.useMemo(() => {
+    return hslaToHex(color.hue, color.saturation, color.lightness, color.alpha);
+  }, [color.hue, color.saturation, color.lightness, color.alpha]);
+  
+  // Track if we're currently updating from hex picker to prevent feedback loops
+  const isUpdatingFromHexRef = React.useRef(false);
+  
+  // Update hex input when color changes (but not when we're updating from hex picker)
   React.useEffect(() => {
-    setHexInputValue(colorHex);
+    if (!isUpdatingFromHexRef.current) {
+      setHexInputValue(colorHex);
+    }
   }, [colorHex]);
+  
+  // Update control props when color or other values change
+  React.useEffect(() => {
+    if (isActive) {
+      setControlProps({
+        tokenName,
+        label,
+        showSteps,
+        isPickerOpen,
+        setIsPickerOpen,
+        hexInputValue: colorHex, // Use colorHex directly instead of hexInputValue
+        setHexInputValue,
+        colorHex,
+        handleHexChange,
+        handleHexInputChange,
+        handleHexInputSubmit,
+        handleHexInputKeyPress,
+        updateColorProperty,
+        handleInputChange,
+        getStepValue
+      });
+    }
+  }, [isActive, colorHex, color, isPickerOpen]); // Update when color changes
 
   // Monitor swatch container dimensions
   React.useEffect(() => {
@@ -419,15 +458,8 @@ export const ColorControl: React.FC<ColorControlProps> = ({
     return standardLightness;
   };
   
-  // Handle direct hex color changes from the picker
-  const handleHexChange = (newHex: string) => {
-    const { h, s, l, a } = hexToHsla(newHex);
-    updateColorProperty('hue', h);
-    // Cap saturation at 15% for neutrals
-    const saturation = tokenName === 'neutrals' ? Math.min(s, 15) : s;
-    updateColorProperty('saturation', saturation);
-    updateColorProperty('lightness', l);
-  };
+  // Debounced hex change handler to prevent rapid updates
+  const debouncedHexChangeRef = React.useRef<NodeJS.Timeout>();
 
   // Handle hex input field changes
   const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -487,6 +519,60 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       value 
     });
   };
+
+  // Handle direct hex color changes from the picker
+  const handleHexChange = React.useCallback((newHex: string) => {
+    // Clear any pending debounced updates
+    if (debouncedHexChangeRef.current) {
+      clearTimeout(debouncedHexChangeRef.current);
+    }
+    
+    // Set flag to prevent feedback loop
+    isUpdatingFromHexRef.current = true;
+    
+    // Debounce the actual update to prevent jittering
+    debouncedHexChangeRef.current = setTimeout(() => {
+      try {
+        const { h, s, l, a } = hexToHsla(newHex);
+        
+        // Only update if the values are actually different (with tolerance for rounding)
+        const tolerance = 0.3; // Slightly more sensitive
+        const hueChanged = Math.abs(color.hue - h) > tolerance;
+        const saturationChanged = Math.abs(color.saturation - (tokenName === 'neutrals' ? Math.min(s, 15) : s)) > tolerance;
+        const lightnessChanged = Math.abs(color.lightness - l) > tolerance;
+        
+        if (hueChanged || saturationChanged || lightnessChanged) {
+          // Batch the updates to prevent multiple re-renders
+          const updates: Array<{ property: keyof ColorToken; value: number }> = [];
+          
+          if (hueChanged) {
+            updates.push({ property: 'hue', value: h });
+          }
+          
+          if (saturationChanged) {
+            const saturation = tokenName === 'neutrals' ? Math.min(s, 15) : s;
+            updates.push({ property: 'saturation', value: saturation });
+          }
+          
+          if (lightnessChanged) {
+            updates.push({ property: 'lightness', value: l });
+          }
+          
+          // Apply all updates at once
+          updates.forEach(({ property, value }) => {
+            updateColorProperty(property, value);
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to parse hex color:', newHex, error);
+      } finally {
+        // Reset the flag after a short delay to allow state updates to complete
+        setTimeout(() => {
+          isUpdatingFromHexRef.current = false;
+        }, 25); // Faster reset for more responsiveness
+      }
+    }, 8); // ~120fps debouncing for more responsive feel
+  }, [color.hue, color.saturation, color.lightness, tokenName, updateColorProperty]);
 
   // Handle input change for HSL values
   const handleInputChange = (property: keyof ColorToken, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -572,12 +658,207 @@ export const ColorControl: React.FC<ColorControlProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
+  // Cleanup debounced hex changes on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debouncedHexChangeRef.current) {
+        clearTimeout(debouncedHexChangeRef.current);
+      }
+    };
+  }, []);
+
   // Generate color swatches based on step quantity
   const generateColorSwatches = () => {
     const steps = Math.round(color.steps);
     const swatches = [];
     const primaryStepIndex = getPrimaryStepIndex();
     const extraSteps = getExtraStepsCount();
+    
+    // Use LCH mode if enabled
+    if (system.colorInterpolationMode === 'lch' && showSteps) {
+      const lchScale = generateLchColorScale(
+        color.hue,                                    // 1. baseHue
+        color.saturation,                             // 2. baseSaturation
+        color.lightness,                              // 3. baseLightness
+        color.alpha,                                  // 4. baseAlpha
+        steps,                                        // 5. steps
+        primaryStepIndex,                             // 6. primaryStepIndex
+        color.lightnessEasingLight || 'ease-out',     // 7. lightnessEasingLight
+        color.lightnessEasingDark || 'ease-in',       // 8. lightnessEasingDark
+        color.saturationEasingLight || 'linear',      // 9. saturationEasingLight
+        color.saturationEasingDark || 'linear',       // 10. saturationEasingDark
+        color.customLightnessCurveLight,              // 11. customLightnessCurveLight
+        color.customLightnessCurveDark,               // 12. customLightnessCurveDark
+        color.customSaturationCurveLight,             // 13. customSaturationCurveLight
+        color.customSaturationCurveDark,              // 14. customSaturationCurveDark
+        tokenName                                     // 15. tokenName
+      );
+      
+      // Generate swatches from LCH scale
+      for (let i = 0; i < steps; i++) {
+        const stepColor = lchScale[i];
+        const swatchHex = stepColor.hex;
+        
+        // Check for custom comparison color
+        const comparisonKey = `${tokenName}-${i}`;
+        const customComparisonColor = comparisonColors[comparisonKey];
+        
+        // Calculate contrast ratios
+        let contrastData;
+        if (customComparisonColor) {
+          const customContrast = calculateContrastRatio(swatchHex, customComparisonColor);
+          const customCompliance = getWCAGCompliance(customContrast);
+          contrastData = {
+            color: customComparisonColor,
+            contrast: customContrast,
+            compliance: customCompliance,
+            isCustom: true
+          };
+        } else {
+          const whiteContrast = calculateContrastRatio(swatchHex, "#FFFFFF");
+          const blackContrast = calculateContrastRatio(swatchHex, "#000000");
+          
+          const whiteCompliance = getWCAGCompliance(whiteContrast);
+          const blackCompliance = getWCAGCompliance(blackContrast);
+          
+          contrastData = {
+            whiteContrast,
+            blackContrast,
+            whiteCompliance,
+            blackCompliance,
+            isCustom: false
+          };
+        }
+        
+        // Generate step number
+        const stepValue = getStepValue(i);
+        const stepLabel = `${tokenName}-${stepValue}`;
+        const isPrimaryStep = i === primaryStepIndex;
+        
+        swatches.push(
+          <div 
+            key={i} 
+            className="flex flex-col items-center" 
+            style={{ flex: "1 0 calc(100% / Math.min(steps, 6) - 4px)" }}
+          >
+            <div 
+              className={`w-full aspect-square mb-1 ${isPrimaryStep ? 'p-0.5' : ''}`}
+              style={isPrimaryStep ? { 
+                border: '2px solid black',
+                borderRadius: '18px'
+              } : {}}
+            >
+              <div 
+                className={`w-full h-full border relative p-4 ${isPrimaryStep ? 'border-transparent' : 'border-border'}`}
+                style={{ backgroundColor: swatchHex, borderRadius: '16px' }}
+              >
+              {/* Contrast color picker - only show when showContrastData is true */}
+              {showContrastData && (
+                <div className="absolute top-2 left-2">
+                  <ContrastColorPicker 
+                    tokenName={tokenName}
+                    stepIndex={i}
+                    currentColor={swatchHex}
+                    useWhiteIcon={!(!contrastData.isCustom && contrastData.blackCompliance.AA)}
+                  />
+                </div>
+              )}
+              
+              {/* Contrast labels - only show when showContrastData is true */}
+              {showContrastData && (
+                <div className="absolute top-4 right-4 flex flex-col gap-1 text-xs font-mono">
+                  {contrastData.isCustom ? (
+                    // Custom comparison color
+                    <div className="flex items-center gap-1">
+                      <div 
+                        className="w-3 h-3 rounded-full border border-border" 
+                        style={{ backgroundColor: contrastData.color }}
+                      />
+                      <div className="flex gap-1">
+                        {contrastData.compliance.AA && (
+                          <span className="text-black bg-white/90 px-1 rounded">
+                            AA ✓
+                          </span>
+                        )}
+                        {contrastData.compliance.AAA && (
+                          <span className="text-black bg-white/90 px-1 rounded">
+                            AAA ✓
+                          </span>
+                        )}
+                        {!contrastData.compliance.AA && (
+                          <span className="text-black bg-white/90 px-1 rounded">
+                            {contrastData.contrast.toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* White text indicators */}
+                      {(contrastData.whiteCompliance.AA || contrastData.whiteCompliance.AAA) && (
+                        <div className="flex gap-1">
+                          {contrastData.whiteCompliance.AA && (
+                            <span className="text-white">
+                              AA ✓
+                            </span>
+                          )}
+                          {contrastData.whiteCompliance.AAA && (
+                            <span className="text-white">
+                              AAA ✓
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Black text indicators */}
+                      {(contrastData.blackCompliance.AA || contrastData.blackCompliance.AAA) && (
+                        <div className="flex gap-1">
+                          {contrastData.blackCompliance.AA && (
+                            <span className="text-black">
+                              AA ✓
+                            </span>
+                          )}
+                          {contrastData.blackCompliance.AAA && (
+                            <span className="text-black">
+                              AAA ✓
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* Color values overlay */}
+              <div className="absolute bottom-2 left-2 flex flex-col text-xs font-mono leading-tight">
+                <span className={`${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>{swatchHex}</span>
+                <span className={`${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>
+                  {(() => {
+                    const columnsPerRow = getColumnsPerRow();
+                    const individualSwatchWidth = swatchWidth / columnsPerRow;
+                    const showPercentage = individualSwatchWidth >= 200;
+                    
+                    return showPercentage
+                      ? `hsla(${Math.round(stepColor.h)}, ${Math.round(stepColor.s)}%, ${Math.round(stepColor.l)}%, ${stepColor.a.toFixed(2)})`
+                      : `hsla(${Math.round(stepColor.h)}, ${Math.round(stepColor.s)}, ${Math.round(stepColor.l)}, ${stepColor.a.toFixed(2)})`;
+                  })()}
+                </span>
+              </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-xs text-muted-foreground truncate max-w-full">{stepLabel}</span>
+              {isPrimaryStep && (
+                <span className="text-xs text-primary font-medium mt-0.5">Primary Step</span>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      return swatches;
+    }
     
     // NEW APPROACH: Use primary color's actual lightness as anchor point
     // and ensure each step has unique lightness values with proper spacing
@@ -622,254 +903,55 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       darkerStepSize = Math.max(darkerRange / darkerSteps, minStepDifference);
     }
     
-    // Generate lightness values for each step
-    const stepLightnessValues = [];
+    // Generate lightness values using dual easing curves if available
+    // Always use dual easing since we have defaults
+    const lightnessValues = generateDualEasedSteps(
+      steps,
+      primaryStepIndex,
+      primaryLightness,
+      adjustedMinLightness,
+      maxLightness,
+      color.lightnessEasingLight || 'ease-out',
+      color.lightnessEasingDark || 'ease-in',
+      color.customLightnessCurveLight,
+      color.customLightnessCurveDark
+    );
     
-    for (let i = 0; i < steps; i++) {
-      let stepLightness;
-      
-      if (i === primaryStepIndex) {
-        // This is the primary step - use the actual primary lightness
-        stepLightness = primaryLightness;
-      } else if (i < primaryStepIndex) {
-        // Lighter than primary
-        const stepsFromPrimary = primaryStepIndex - i;
-        stepLightness = primaryLightness + (stepsFromPrimary * lighterStepSize);
-        
-        // Apply extra step positioning for very light steps
-        if (i < extraSteps) {
-          const isExtraStep25 = (i === 0 && extraSteps === 2);
-          const extraBoost = isExtraStep25 ? lighterStepSize * 0.5 : lighterStepSize * 0.25;
-          stepLightness += extraBoost;
-        }
-        
-        // Ensure we don't exceed maximum
-        stepLightness = Math.min(stepLightness, maxLightness);
-      } else {
-        // Darker than primary
-        const stepsFromPrimary = i - primaryStepIndex;
-        stepLightness = primaryLightness - (stepsFromPrimary * darkerStepSize);
-        
-        // Ensure we don't go below minimum (use adjusted minimum for utility colors)
-        stepLightness = Math.max(stepLightness, adjustedMinLightness);
-      }
-      
-      stepLightnessValues.push(stepLightness);
-    }
+    // Generate saturation values using smart saturation scaling
+    const saturationValues = generateSmartSaturationSteps(
+      steps,
+      primaryStepIndex,
+      color.saturation,
+      tokenName === 'neutrals' ? 'neutral' : 
+      isUtilityColor ? 'utility' : 'standard',
+      color.saturationEasingLight || 'linear',
+      color.saturationEasingDark || 'linear',
+      color.customSaturationCurveLight,
+      color.customSaturationCurveDark
+    );
     
-    // Apply skew adjustments - FIXED TO ONLY LIGHTEN AND AFFECT ALL STEPS BELOW PRIMARY
+    // Use the easing-based values directly
     const adjustedValues = [];
     
     for (let i = 0; i < steps; i++) {
-      let adjustedLightness = stepLightnessValues[i];
-      const isExtraStep = i < extraSteps;
-      
-      // Apply skew light intensity for ALL steps below the primary index (not just "lighter" ones)
-      if (i < primaryStepIndex && color.skewLightIntensity > 0) {
-        const distanceFromPrimary = (primaryStepIndex - i) / primaryStepIndex;
-        const intensityFactor = color.skewLightIntensity / 100;
-        
-        // At 0% intensity, no effect. At 100% intensity, maximum lightening effect
-        if (intensityFactor > 0) {
-          // Calculate the original lightness as our baseline (never go below this)
-          const originalLightness = stepLightnessValues[i];
-          
-          // Calculate how much lighter we can make this step
-          const availableLightnessRange = maxLightness - originalLightness;
-          
-          // Apply lightening effect - steps closer to primary get less effect, farther steps get more
-          const lighteningEffect = intensityFactor * distanceFromPrimary;
-          
-          // Calculate the lightness boost
-          let lightnessBoost = availableLightnessRange * lighteningEffect;
-          
-          // Extra light steps get additional boost
-          if (isExtraStep) {
-            lightnessBoost *= 1.2;
-          }
-          
-          // Apply the boost - ALWAYS LIGHTEN, NEVER DARKEN
-          adjustedLightness = Math.min(originalLightness + lightnessBoost, maxLightness);
-          
-          // Ensure we never go below the original lightness
-          adjustedLightness = Math.max(adjustedLightness, originalLightness);
-        }
-      }
-      // Apply skew dark intensity for ALL steps above the primary index - FIXED LOGIC
-      else if (i > primaryStepIndex && color.skewDarkIntensity > 0) {
-        const distanceFromPrimary = (i - primaryStepIndex) / (steps - primaryStepIndex - 1);
-        const intensityFactor = color.skewDarkIntensity / 100;
-        
-        // At 0% intensity, no effect. At 100% intensity, maximum darkening effect
-        if (intensityFactor > 0) {
-          // Calculate the original lightness as our baseline (never go above this)
-          const originalLightness = stepLightnessValues[i];
-          
-          // Calculate how much darker we can make this step (use adjusted minimum for utility colors)
-          const availableDarknessRange = originalLightness - adjustedMinLightness;
-          
-          // Apply darkening effect - steps closer to primary get less effect, farther steps get more
-          const darkeningEffect = intensityFactor * distanceFromPrimary;
-          
-          // Calculate the lightness reduction
-          const lightnessReduction = availableDarknessRange * darkeningEffect;
-          
-          // Apply the reduction - ALWAYS DARKEN, NEVER LIGHTEN
-          adjustedLightness = Math.max(originalLightness - lightnessReduction, adjustedMinLightness);
-          
-          // Ensure we never go above the original lightness
-          adjustedLightness = Math.min(adjustedLightness, originalLightness);
-        }
-      }
-      
-      // Calculate saturation - PRIORITIZE LIGHTNESS, MINIMAL SATURATION CHANGES
-      let stepSaturation = color.saturation;
-      
-      if (i < primaryStepIndex) {
-        // For Skew Light Intensity, focus on lightness and keep saturation changes minimal
-        const distanceFromPrimary = (primaryStepIndex - i) / primaryStepIndex;
-        const lightSkewFactor = color.skewLightIntensity / 100;
-        
-        // Base saturation - very gentle reduction for lighter steps
-        let baseSaturationFactor;
-        if (isExtraStep) {
-          // Extra steps get slightly less saturation naturally
-          baseSaturationFactor = (i === 0 && extraSteps === 2) ? 0.85 : 0.9;
-        } else {
-          // Normal steps get minimal saturation reduction
-          baseSaturationFactor = 1 - (distanceFromPrimary * 0.2); // Reduced from 0.7 to 0.2
-        }
-        
-        // Skew Light Intensity should NOT significantly affect saturation
-        // Only apply very minimal additional reduction if skew is active
-        if (lightSkewFactor > 0) {
-          const skewSaturationReduction = lightSkewFactor * distanceFromPrimary * 0.05; // Very minimal: up to 5%
-          baseSaturationFactor = baseSaturationFactor - skewSaturationReduction;
-          // Don't enforce a minimum - let it go as low as the calculation determines
-        }
-        
-        stepSaturation = color.saturation * Math.max(baseSaturationFactor, 0.1); // Only prevent going below 10%
-        
-      } else if (i > primaryStepIndex) {
-        // For Skew Dark Intensity, focus on darkening with moderate saturation enhancement
-        const distanceFromPrimary = (i - primaryStepIndex) / (steps - primaryStepIndex - 1);
-        const darkSkewFactor = color.skewDarkIntensity / 100;
-        
-        // Base saturation boost for darker steps - moderate increase
-        let baseSaturationBoostFactor = 1 + (distanceFromPrimary * 0.3); // Increased from 0.2 to 0.3
-        
-        // Apply skew dark intensity effect on saturation - enhanced but not overwhelming
-        // Higher skew dark intensity makes darker steps more saturated (richer, deeper)
-        if (darkSkewFactor > 0) {
-          const skewSaturationBoost = darkSkewFactor * distanceFromPrimary * 0.4; // Reduced from 0.6 to 0.4 for balance
-          baseSaturationBoostFactor += skewSaturationBoost;
-        }
-        
-        stepSaturation = Math.min(color.saturation * baseSaturationBoostFactor, 100);
-      }
-      
       adjustedValues.push({
-        lightness: adjustedLightness,
-        saturation: stepSaturation
+        lightness: lightnessValues[i],
+        saturation: saturationValues[i]
       });
     }
     
-    // Final pass - enforce uniqueness while PRESERVING skew effects
-    // We need to maintain proper ordering but NOT override the skew lightening effects
-    
-    // Step 1: Ensure proper light-to-dark progression, but preserve skew lightening
+    // The easing curves should already produce valid values, but let's ensure minimum differences
+    // for edge cases where the range is too small
     for (let i = 1; i < steps; i++) {
       const currentLightness = adjustedValues[i].lightness;
       const previousLightness = adjustedValues[i-1].lightness;
       
-      // Each step must be at least 1% darker than the previous
+      // Ensure each step is at least minStepDifference darker than the previous
       if (currentLightness >= previousLightness - minStepDifference) {
-        // Only adjust if we're not in a skew-affected area
-        const isLightSkewAffected = i < primaryStepIndex && color.skewLightIntensity > 0;
-        const isDarkSkewAffected = i > primaryStepIndex && color.skewDarkIntensity > 0;
-        
-        if (!isLightSkewAffected && !isDarkSkewAffected) {
-          adjustedValues[i].lightness = Math.max(
-            previousLightness - minStepDifference,
-            adjustedMinLightness
-          );
-        } else {
-          // For skew-affected steps, try to adjust the previous step instead
-          if (i > 1 && !isLightSkewAffected) {
-            adjustedValues[i-1].lightness = Math.min(
-              currentLightness + minStepDifference,
-              maxLightness
-            );
-          }
-        }
-      }
-    }
-    
-    // Step 2: Reverse pass - but preserve skew effects
-    for (let i = steps - 2; i >= 0; i--) {
-      const currentLightness = adjustedValues[i].lightness;
-      const nextLightness = adjustedValues[i+1].lightness;
-      
-      // Each step must be at least 1% lighter than the next
-      if (currentLightness <= nextLightness + minStepDifference) {
-        const isLightSkewAffected = i < primaryStepIndex && color.skewLightIntensity > 0;
-        const isDarkSkewAffected = i > primaryStepIndex && color.skewDarkIntensity > 0;
-        
-        if (!isLightSkewAffected && !isDarkSkewAffected) {
-          adjustedValues[i].lightness = Math.min(
-            nextLightness + minStepDifference,
-            maxLightness
-          );
-        }
-        // For skew-affected steps, don't override the skew effects
-      }
-    }
-    
-    // Step 3: Final validation pass to ensure no violations remain
-    // and compress the range if needed to fit all steps
-    let hasViolations = true;
-    let passCount = 0;
-    const maxPasses = 5; // Prevent infinite loops
-    
-    while (hasViolations && passCount < maxPasses) {
-      hasViolations = false;
-      passCount++;
-      
-      for (let i = 1; i < steps; i++) {
-        const currentLightness = adjustedValues[i].lightness;
-        const previousLightness = adjustedValues[i-1].lightness;
-        
-        if (currentLightness >= previousLightness - minStepDifference) {
-          // Calculate what the value should be
-          const targetLightness = previousLightness - minStepDifference;
-          
-          // If this would go below minimum, we need to compress the entire range
-          if (targetLightness < adjustedMinLightness) {
-            // Compress all steps proportionally to fit in available space
-            const totalRange = maxLightness - adjustedMinLightness;
-            const neededRange = (steps - 1) * minStepDifference;
-            
-            if (neededRange <= totalRange) {
-              // We can fit all steps, redistribute them evenly
-              for (let j = 0; j < steps; j++) {
-                const position = j / (steps - 1); // 0 to 1
-                adjustedValues[j].lightness = maxLightness - (position * neededRange);
-              }
-            } else {
-              // Not enough space even with minimum differences - use minimum spacing
-              for (let j = 0; j < steps; j++) {
-                adjustedValues[j].lightness = Math.max(
-                  maxLightness - (j * minStepDifference),
-                  adjustedMinLightness
-                );
-              }
-            }
-            break; // Exit inner loop since we've redistributed everything
-          } else {
-            adjustedValues[i].lightness = targetLightness;
-            hasViolations = true;
-          }
-        }
+        adjustedValues[i].lightness = Math.max(
+          previousLightness - minStepDifference,
+          adjustedMinLightness
+        );
       }
     }
     
@@ -885,12 +967,38 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         color.alpha
       );
       
-      // Calculate contrast ratios using alpha-aware method
-      const whiteContrast = calculateContrastRatioHSLA(color.hue, stepSaturation, stepLightness, color.alpha, "#FFFFFF");
-      const blackContrast = calculateContrastRatioHSLA(color.hue, stepSaturation, stepLightness, color.alpha, "#000000");
+      // Check for custom comparison color
+      const comparisonKey = `${tokenName}-${i}`;
+      const customComparisonColor = comparisonColors[comparisonKey];
       
-      const whiteCompliance = getWCAGCompliance(whiteContrast);
-      const blackCompliance = getWCAGCompliance(blackContrast);
+      // Calculate contrast ratios using alpha-aware method
+      let contrastData;
+      if (customComparisonColor) {
+        // Use custom comparison color
+        const customContrast = calculateContrastRatio(swatchHex, customComparisonColor);
+        const customCompliance = getWCAGCompliance(customContrast);
+        contrastData = {
+          color: customComparisonColor,
+          contrast: customContrast,
+          compliance: customCompliance,
+          isCustom: true
+        };
+      } else {
+        // Default to white and black
+        const whiteContrast = calculateContrastRatioHSLA(color.hue, stepSaturation, stepLightness, color.alpha, "#FFFFFF");
+        const blackContrast = calculateContrastRatioHSLA(color.hue, stepSaturation, stepLightness, color.alpha, "#000000");
+        
+        const whiteCompliance = getWCAGCompliance(whiteContrast);
+        const blackCompliance = getWCAGCompliance(blackContrast);
+        
+        contrastData = {
+          whiteContrast,
+          blackContrast,
+          whiteCompliance,
+          blackCompliance,
+          isCustom: false
+        };
+      }
       
       // Generate step number (25, 50, 100, 200, 300, etc.)
       const stepValue = getStepValue(i);
@@ -901,7 +1009,7 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         <div 
           key={i} 
           className="flex flex-col items-center" 
-          style={{ flex: "1 0 calc(100% / Math.min(steps, 6) - 8px)" }}
+          style={{ flex: "1 0 calc(100% / Math.min(steps, 6) - 4px)" }}
         >
           <div 
             className={`w-full aspect-square mb-1 ${isPrimaryStep ? 'p-0.5' : ''}`}
@@ -914,47 +1022,88 @@ export const ColorControl: React.FC<ColorControlProps> = ({
               className={`w-full h-full border relative p-4 ${isPrimaryStep ? 'border-transparent' : 'border-border'}`}
               style={{ backgroundColor: swatchHex, borderRadius: '16px' }}
             >
+            {/* Contrast color picker - only show when showContrastData is true */}
+            {showContrastData && (
+              <div className="absolute top-2 left-2">
+                <ContrastColorPicker 
+                  tokenName={tokenName}
+                  stepIndex={i}
+                  currentColor={swatchHex}
+                  useWhiteIcon={!(!contrastData.isCustom && contrastData.blackCompliance.AA)}
+                />
+              </div>
+            )}
+            
             {/* Contrast labels - only show when showContrastData is true */}
             {showContrastData && (
-              <div className="absolute top-4 right-4 flex flex-col gap-1 text-xs font-mono">
-                {/* White text indicators */}
-                {(whiteCompliance.AA || whiteCompliance.AAA) && (
-                  <div className="flex gap-1">
-                    {whiteCompliance.AA && (
-                      <span className="text-white">
-                        AA ✓
-                      </span>
-                    )}
-                    {whiteCompliance.AAA && (
-                      <span className="text-white">
-                        AAA ✓
-                      </span>
-                    )}
+              <div className="absolute top-2 right-2 flex flex-col gap-1 text-xs font-mono">
+                {contrastData.isCustom ? (
+                  // Custom comparison color
+                  <div className="flex items-center gap-1">
+                    <div 
+                      className="w-3 h-3 rounded-full border border-border" 
+                      style={{ backgroundColor: contrastData.color }}
+                    />
+                    <div className="flex gap-1">
+                      {contrastData.compliance.AA && (
+                        <span className="text-black bg-white/90 px-1 rounded">
+                          AA ✓
+                        </span>
+                      )}
+                      {contrastData.compliance.AAA && (
+                        <span className="text-black bg-white/90 px-1 rounded">
+                          AAA ✓
+                        </span>
+                      )}
+                      {!contrastData.compliance.AA && (
+                        <span className="text-black bg-white/90 px-1 rounded">
+                          {contrastData.contrast.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                )}
-                
-                {/* Black text indicators */}
-                {(blackCompliance.AA || blackCompliance.AAA) && (
-                  <div className="flex gap-1">
-                    {blackCompliance.AA && (
-                      <span className="text-black">
-                        AA ✓
-                      </span>
+                ) : (
+                  <>
+                    {/* White text indicators */}
+                    {(contrastData.whiteCompliance.AA || contrastData.whiteCompliance.AAA) && (
+                      <div className="flex gap-1">
+                        {contrastData.whiteCompliance.AA && (
+                          <span className="text-white">
+                            AA ✓
+                          </span>
+                        )}
+                        {contrastData.whiteCompliance.AAA && (
+                          <span className="text-white">
+                            AAA ✓
+                          </span>
+                        )}
+                      </div>
                     )}
-                    {blackCompliance.AAA && (
-                      <span className="text-black">
-                        AAA ✓
-                      </span>
+                    
+                    {/* Black text indicators */}
+                    {(contrastData.blackCompliance.AA || contrastData.blackCompliance.AAA) && (
+                      <div className="flex gap-1">
+                        {contrastData.blackCompliance.AA && (
+                          <span className="text-black">
+                            AA ✓
+                          </span>
+                        )}
+                        {contrastData.blackCompliance.AAA && (
+                          <span className="text-black">
+                            AAA ✓
+                          </span>
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             )}
             
             {/* Color values overlay */}
-            <div className="absolute bottom-4 left-4 flex flex-col text-xs font-mono leading-tight">
-              <span className={`${blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>{swatchHex}</span>
-              <span className={`${blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>
+            <div className="absolute bottom-2 left-2 flex flex-col text-xs font-mono leading-tight">
+              <span className={`${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>{swatchHex}</span>
+              <span className={`${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'} drop-shadow-sm`}>
                 {(() => {
                   // Calculate individual swatch width - divide container width by columns per row
                   const columnsPerRow = getColumnsPerRow();
@@ -983,7 +1132,13 @@ export const ColorControl: React.FC<ColorControlProps> = ({
   };
   
   return (
-    <div className="mb-8 w-full cursor-pointer rounded-xl p-4 transition-colors hover:bg-gray-50/80 active:bg-gray-100/80" data-color-control={tokenName} onClick={activateColorControl}>
+    <div 
+      className={`mb-8 w-full cursor-pointer rounded-xl p-4 transition-all hover:bg-gray-50/80 active:bg-gray-100/80 ${
+        isActive ? 'outline outline-2 outline-black outline-offset-2' : ''
+      }`} 
+      data-color-control={tokenName} 
+      onClick={activateColorControl}
+    >
       <div className="flex items-center mb-4">
         <Label className="text-lg font-medium">{label}</Label>
         <div className="flex items-center gap-3 ml-3">
@@ -997,14 +1152,62 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       
       {/* Color swatches display */}
       {showSteps && (
-        <div ref={swatchContainerRef}
-             className="grid gap-4 p-2" 
-             style={{ 
-               gridTemplateColumns: `repeat(${getColumnsPerRow()}, 1fr)`, 
-               width: '100%' 
-             }}>
-          {generateColorSwatches()}
-        </div>
+        <>
+          <div ref={swatchContainerRef}
+               className="grid gap-2 p-2" 
+               style={{ 
+                 gridTemplateColumns: `repeat(${getColumnsPerRow()}, 1fr)`, 
+                 width: '100%' 
+               }}
+               key={`${color.lightnessCompression}-${color.darknessCompression}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+            {generateColorSwatches()}
+          </div>
+          
+          {/* Step distribution graph */}
+          <div className="w-full px-2 mt-4" key={`graph-${color.lightnessCompression}-${color.darknessCompression}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+            <StepDistributionGraph
+              lightnessValues={(() => {
+                const steps = Math.round(color.steps);
+                const primaryStepIndex = getPrimaryStepIndex();
+                
+                // Generate the same lightness values as used in the swatches
+                // Always use dual easing since we have defaults
+                return generateDualEasedSteps(
+                  steps,
+                  primaryStepIndex,
+                  color.lightness,
+                  tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 2,
+                  98,
+                  color.lightnessEasingLight || 'ease-out',
+                  color.lightnessEasingDark || 'ease-in',
+                  color.customLightnessCurveLight,
+                  color.customLightnessCurveDark
+                );
+              })()}
+              primaryStepIndex={getPrimaryStepIndex()}
+              primaryColor={(() => {
+                // Use the current color's primary step for the primary dot color
+                switch (tokenName) {
+                  case 'secondary':
+                    return hslaToHex(system.colors.secondary.hue, system.colors.secondary.saturation, system.colors.secondary.lightness, system.colors.secondary.alpha);
+                  case 'accent':
+                    return hslaToHex(system.colors.accent.hue, system.colors.accent.saturation, system.colors.accent.lightness, system.colors.accent.alpha);
+                  case 'neutrals':
+                    return hslaToHex(system.colors.neutrals.hue, system.colors.neutrals.saturation, system.colors.neutrals.lightness, system.colors.neutrals.alpha);
+                  case 'success':
+                    return hslaToHex(system.colors.success.hue, system.colors.success.saturation, system.colors.success.lightness, system.colors.success.alpha);
+                  case 'warning':
+                    return hslaToHex(system.colors.warning.hue, system.colors.warning.saturation, system.colors.warning.lightness, system.colors.warning.alpha);
+                  case 'destructive':
+                    return hslaToHex(system.colors.destructive.hue, system.colors.destructive.saturation, system.colors.destructive.lightness, system.colors.destructive.alpha);
+                  default:
+                    return hslaToHex(system.colors.primary.hue, system.colors.primary.saturation, system.colors.primary.lightness, system.colors.primary.alpha);
+                }
+              })()}
+              secondaryColor={hslaToHex(system.colors.secondary.hue, system.colors.secondary.saturation, system.colors.secondary.lightness, system.colors.secondary.alpha)}
+            />
+          </div>
+        </>
       )}
     </div>
   );

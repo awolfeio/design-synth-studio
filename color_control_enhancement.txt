@@ -1,0 +1,41 @@
+### Plan for Richer Color Controls
+
+The core idea is to move beyond editing single colors in isolation and provide tools that manage color relationships and perceptual qualities, which is how designers often think.
+
+#### 1. Introduce Color Harmonies & Thematic Color Generation
+
+*   **What it is:** Instead of relying on the user to pick multiple base colors manually, we can automatically generate harmonious color palettes based on a single primary color. This is a staple of professional color tools.
+*   **How we'll do it:**
+    *   Add a "Harmony" selector in the sidebar with options like `Complementary`, `Triadic`, `Analogous`, and `Split-Complementary`.
+    *   Selecting a harmony will automatically create new color groups (e.g., `secondary`, `accent`) with their hues locked in relation to the primary color. For example, a complementary color's hue will be offset by 180 degrees from the primary.
+    *   Changing the primary color's hue would then update all related colors in the theme, maintaining the harmony.
+
+#### 2. Implement Perceptually Uniform Color Scales (LCH Color Space)
+
+*   **What it is:** The current system uses HSL, which is intuitive but not perceptually uniform (e.g., a 10-point lightness change in a yellow looks different from a 10-point change in a blue). LCH (Lightness, Chroma, Hue) is a color space designed to match human perception, resulting in much more natural and aesthetically pleasing color scales.
+*   **How we'll do it:**
+    *   Add a color interpolation mode toggle to switch between `HSL` (the default mode) and `LCH`.
+    *   When `LCH` is active, the color scale generation will happen in the LCH space. This means we'll interpolate Lightness and Chroma, which often produces smoother and more consistent gradients.
+    *   This will require adding a color conversion library like `culori` to handle the math.
+
+#### 3. Add Advanced Easing Curves for Lightness & Saturation
+
+*   **What it is:** The current "Skew" sliders offer a linear bias. We can provide ultimate control by allowing designers to define a custom distribution curve for lightness and saturation across the color steps.
+*   **How we'll do it:**
+    *   Replace the "Skew Light/Dark Intensity" sliders with a visual "Easing Curve Editor".
+    *   This editor will show a graph where the X-axis is the color steps and the Y-axis is the property value (e.g., lightness).
+    *   Designers can then click to add points and drag them to create a custom curve (e.g., `ease-in-out`, or a curve with a specific dip or peak), giving them precise control over the rhythm of their color palette.
+
+#### 4. Enhance Contrast Checking
+
+*   **What it is:** The current WCAG check against black and white is great. We can make it even more useful by allowing checks against any other color in the design system.
+*   **How we'll do it:**
+    *   Next to the existing contrast ratio display on each color swatch, add a small eyedropper or a dropdown menu.
+    *   This will allow a user to select any other color from their generated palettes as the comparison color, instantly seeing the contrast ratio between, for example, `primary-500` and `neutral-100`.
+
+### Proposed Implementation Order
+
+1.  **Enhanced Contrast Checking:** This is a direct and high-value improvement to an existing feature.
+2.  **Color Harmonies:** This introduces a powerful, workflow-changing concept for theme creation.
+3.  **LCH Color Space:** This is a significant "under-the-hood" enhancement that will noticeably improve the quality of the generated palettes.
+4.  **Advanced Easing Curves:** This is the most complex feature to implement but offers the highest degree of fine-tuned control. 

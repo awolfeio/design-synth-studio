@@ -1,0 +1,58 @@
+### Icon Library Integration Plan
+
+This plan outlines the steps to integrate selectable icon libraries into the Design Synth Studio, allowing users to choose a base icon set for their design system.
+
+#### Phase 1: Setup and State Management
+
+1.  **Install Dependencies:**
+    *   Verify that `lucide-react` is already a dependency.
+    *   Install the React packages for Heroicons (`@heroicons/react`) and Tabler Icons (`@tabler/icons-react`) via npm.
+
+2.  **Update Design System Context:**
+    *   Modify `src/types/designTokens.ts`:
+        *   Create a new type `IconLibrary = 'lucide' | 'heroicons' | 'tabler'`.
+        *   Add a new property `iconLibrary: IconLibrary` to the `DesignSystem` type.
+    *   Modify `src/contexts/DesignSystemContext.tsx`:
+        *   Update the `defaultDesignSystem` object to include `iconLibrary: 'lucide'`.
+        *   Add a new action type to the reducer, like `{ type: 'SET_ICON_LIBRARY'; library: IconLibrary }`.
+        *   Implement the `SET_ICON_LIBRARY` case within the `designSystemReducer` to update the state.
+
+#### Phase 2: Create the "Icons" Page
+
+1.  **Create New Page Component:**
+    *   Create a new file at `src/pages/Icons.tsx`. This component will serve as the main view for icon selection and preview.
+
+2.  **Add Routing:**
+    *   In `src/App.tsx`, add a new `<Route>` for the path `/icons` that renders the new `<Icons />` page component, wrapped within the `<RootLayout />`.
+
+3.  **Update Navigation:**
+    *   In `src/components/Layout/LeftSidebar.tsx`, add a new navigation link to the "Icons" page, likely using an appropriate icon from the default Lucide library.
+
+#### Phase 3: Implement UI and Icon Preview
+
+1.  **Build the Icons Page UI (`src/pages/Icons.tsx`):**
+    *   Add a main heading like "Icon Library".
+    *   Use a `RadioGroup` or `Select` component to display the choices: "Lucide (Default)", "Heroicons", and "Tabler".
+    *   This control should read the current selection from the `DesignSystemContext` and dispatch the `SET_ICON_LIBRARY` action on change.
+
+2.  **Create the Icon Preview Component (`src/components/Display/IconPreview.tsx`):**
+    *   This component will be responsible for rendering the grid of icons.
+    *   It will read the `system.iconLibrary` from the `useDesignSystem` hook.
+    *   Include a search/filter input field at the top of the preview section to allow users to find specific icons by name.
+
+3.  **Implement Conditional Icon Rendering:**
+    *   Inside `IconPreview.tsx`, implement the logic to display icons from the currently selected library.
+    *   Use a conditional statement (e.g., `if/else` or `switch`) based on the `iconLibrary` state.
+    *   For each case, import a large, representative subset of icons from the corresponding library (e.g., `lucide-react`, `@heroicons/react/24/outline`, `@tabler/icons-react`).
+    *   Render the icons in a responsive grid. Each grid item should display the icon component and its name below it.
+    *   The search filter should dynamically update the displayed grid based on the user's input.
+
+#### Phase 4: Integration and Refinement
+
+1.  **Component Integration:**
+    *   Place the `<IconPreview />` component within the `Icons.tsx` page to display the results.
+2.  **Styling:**
+    *   Ensure the new page, its controls, and the icon grid are styled consistently with the rest of the application, using the existing UI components and theme variables.
+3.  **Performance Considerations:**
+    *   Initially, render a curated list of ~150-250 icons for each library to ensure a fast initial page load.
+    *   If filtering the full set of icons becomes slow, the `IconPreview` component can be refactored later to use a virtualization library like `react-window` or `TanStack Virtual`. 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { DesignSystem, PresetTheme, ColorToken, ComponentVariant, ColorTokens } from '@/types/designTokens';
+import { DesignSystem, PresetTheme, ColorToken, ComponentVariant, ColorTokens, ColorHarmony, EasingCurve } from '@/types/designTokens';
 
 // Default color token
 const defaultColorToken: ColorToken = {
@@ -9,7 +9,19 @@ const defaultColorToken: ColorToken = {
   alpha: 1,
   steps: 12,
   skewLightIntensity: 0,
-  skewDarkIntensity: 0
+  skewDarkIntensity: 0,
+  // Dual easing curves with recommended defaults
+  lightnessEasingLight: 'ease-out', // Better perceptual spacing in light range
+  lightnessEasingDark: 'ease-in',   // Better perceptual spacing in dark range
+  saturationEasingLight: 'linear',
+  saturationEasingDark: 'linear',
+  // Compression values for simple mode (aligned with default easing curves)
+  lightnessCompression: 50,   // Maps to ease-out for light range
+  darknessCompression: -50,   // Maps to ease-in for dark range
+  // Legacy properties for backward compatibility
+  lightnessEasing: 'linear',
+  saturationEasing: 'linear',
+  harmonyType: 'none'
 };
 
 // Default design system
@@ -57,12 +69,14 @@ const defaultDesignSystem: DesignSystem = {
     large: 16,
     full: 9999
   },
-  isDark: false
+  isDark: false,
+  iconLibrary: 'lucide'
 };
 
 // Action types
 type ActionType =
-  | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number | string }
+  | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number | string | number[] }
+  | { type: 'UPDATE_COLOR_COMPRESSION'; tokenName: string; compressionType: 'light' | 'dark'; compressionValue: number }
   | { type: 'UPDATE_FONT'; fontName: string; property: string; value: string | number }
   | { type: 'UPDATE_SPACING'; index: number; value: number }
   | { type: 'UPDATE_SPACING_SCALE'; scale: number[] }
@@ -71,7 +85,9 @@ type ActionType =
   | { type: 'LOAD_PRESET'; preset: PresetTheme }
   | { type: 'RESET' }
   | { type: 'SET_SYSTEM'; system: DesignSystem }
-  | { type: 'UPDATE_SYSTEM_NAME'; name: string };
+  | { type: 'UPDATE_SYSTEM_NAME'; name: string }
+  | { type: 'SET_COLOR_INTERPOLATION_MODE'; mode: 'hsl' | 'lch' }
+  | { type: 'SET_ICON_LIBRARY'; library: 'lucide' | 'heroicons' | 'tabler' };
 
 // Context type
 type DesignSystemContextType = {
@@ -110,7 +126,8 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
             action.property === 'skewDarkIntensity' ||
             action.property === 'primaryStepIndex') {
           // Ensure we're assigning a number
-          numValue = typeof action.value === 'string' ? parseFloat(action.value) : action.value;
+          numValue = typeof action.value === 'string' ? parseFloat(action.value) : 
+                     typeof action.value === 'number' ? action.value : 0;
           
           // Special handling for neutrals saturation - cap at 15%
           if (action.tokenName === 'neutrals' && action.property === 'saturation') {
@@ -118,11 +135,105 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
           }
           
           targetToken[action.property] = numValue;
+        } else if (action.property === 'harmonySource' || action.property === 'harmonyType') {
+          // Handle harmony properties
+          if (action.property === 'harmonySource') {
+            targetToken.harmonySource = action.value as string | undefined;
+          } else if (action.property === 'harmonyType') {
+            targetToken.harmonyType = action.value as ColorHarmony | undefined;
+          }
+        } else if (action.property === 'lightnessEasing' || action.property === 'saturationEasing' ||
+                   action.property === 'lightnessEasingLight' || action.property === 'lightnessEasingDark' ||
+                   action.property === 'saturationEasingLight' || action.property === 'saturationEasingDark') {
+          // Handle all easing curve properties
+          targetToken[action.property] = action.value as EasingCurve;
+        } else if (action.property === 'customLightnessCurve' || action.property === 'customSaturationCurve' ||
+                   action.property === 'customLightnessCurveLight' || action.property === 'customLightnessCurveDark' ||
+                   action.property === 'customSaturationCurveLight' || action.property === 'customSaturationCurveDark') {
+          // Handle all custom curve arrays
+          targetToken[action.property] = Array.isArray(action.value) ? action.value : undefined;
+        } else if (action.property === 'lightnessCompression' || action.property === 'darknessCompression') {
+          // Handle compression values
+          targetToken[action.property] = typeof action.value === 'string' ? parseFloat(action.value) : 
+                                        typeof action.value === 'number' ? action.value : 0;
         }
       }
       
       // Update the token in the colors object
       newColors[action.tokenName] = targetToken;
+      
+      // If primary color changed, update harmonized colors
+      if (action.tokenName === 'primary' && (action.property === 'hue' || action.property === 'saturation' || action.property === 'lightness')) {
+        const primaryColor = newColors.primary;
+        
+        Object.entries(newColors).forEach(([colorName, colorToken]) => {
+          if (colorToken.harmonySource === 'primary' && colorToken.harmonyType && colorToken.harmonyType !== 'none') {
+            let newHue = primaryColor.hue;
+            
+            // Calculate the harmony hue based on the harmony type
+            switch (colorToken.harmonyType) {
+              case 'complementary':
+                newHue = (primaryColor.hue + 180) % 360;
+                break;
+              case 'triadic':
+                // For secondary, use +120, for accent use +240
+                newHue = colorName === 'secondary' 
+                  ? (primaryColor.hue + 120) % 360 
+                  : (primaryColor.hue + 240) % 360;
+                break;
+              case 'analogous':
+                // For secondary, use +30, for accent use -30
+                newHue = colorName === 'secondary'
+                  ? (primaryColor.hue + 30) % 360
+                  : (primaryColor.hue - 30 + 360) % 360;
+                break;
+              case 'split-complementary':
+                // For secondary, use +150, for accent use +210
+                newHue = colorName === 'secondary'
+                  ? (primaryColor.hue + 150) % 360
+                  : (primaryColor.hue + 210) % 360;
+                break;
+            }
+            
+            // Update the harmonized color with new hue and optionally inherit other properties
+            const updatedToken = { ...colorToken, hue: newHue };
+            
+            // For certain harmony types, also inherit saturation and lightness
+            if (action.property === 'saturation' || action.property === 'lightness') {
+              // Complementary colors can inherit saturation and lightness for visual consistency
+              if (colorToken.harmonyType === 'complementary') {
+                if (action.property === 'saturation') {
+                  updatedToken.saturation = primaryColor.saturation;
+                }
+                if (action.property === 'lightness') {
+                  updatedToken.lightness = primaryColor.lightness;
+                }
+              }
+              // Analogous colors work well with similar saturation and lightness
+              else if (colorToken.harmonyType === 'analogous') {
+                if (action.property === 'saturation') {
+                  // Slightly vary saturation for analogous colors
+                  updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
+                }
+                if (action.property === 'lightness') {
+                  // Slightly vary lightness for analogous colors
+                  const variation = colorName === 'secondary' ? 0.9 : 1.1;
+                  updatedToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+                }
+              }
+              // Triadic colors maintain their own saturation/lightness but can be influenced
+              else if (colorToken.harmonyType === 'triadic') {
+                if (action.property === 'saturation') {
+                  // Triadic colors can have slightly different saturation
+                  updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
+                }
+              }
+            }
+            
+            newColors[colorName] = updatedToken;
+          }
+        });
+      }
       
       // Bind step quantities for primary, secondary, and accent
       if (action.property === 'steps' && 
@@ -171,6 +282,56 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
         newColors.warning = { ...newColors.warning, primaryStepIndex: primaryStepValue };
         newColors.destructive = { ...newColors.destructive, primaryStepIndex: primaryStepValue };
       }
+      
+      return {
+        ...state,
+        colors: newColors
+      };
+    }
+    
+    case 'UPDATE_COLOR_COMPRESSION': {
+      const newColors = { ...state.colors };
+      const targetToken = { ...newColors[action.tokenName] };
+      
+      // Import compressionToBezier function inline to avoid circular dependency
+      const compressionToBezier = (compression: number): number[] => {
+        compression = Math.max(-100, Math.min(100, compression));
+        
+        if (compression === 0) {
+          return [0, 0, 1, 1];
+        }
+        
+        const absCompression = Math.abs(compression);
+        const intensity = absCompression / 100;
+        
+        if (compression > 0) {
+          const x1 = 0;
+          const y1 = 0;
+          const x2 = 1 - (0.42 * intensity);
+          const y2 = 1;
+          return [x1, y1, x2, y2];
+        } else {
+          const x1 = 0.42 * intensity;
+          const y1 = 0;
+          const x2 = 1;
+          const y2 = 1;
+          return [x1, y1, x2, y2];
+        }
+      };
+      
+      // Update the specified compression property with the new value
+      if (action.compressionType === 'light') {
+        targetToken.lightnessCompression = action.compressionValue;
+        targetToken.lightnessEasingLight = 'custom';
+        targetToken.customLightnessCurveLight = compressionToBezier(action.compressionValue);
+      } else if (action.compressionType === 'dark') {
+        targetToken.darknessCompression = action.compressionValue;
+        targetToken.lightnessEasingDark = 'custom';
+        targetToken.customLightnessCurveDark = compressionToBezier(action.compressionValue);
+      }
+      
+      // Update the token in the colors object
+      newColors[action.tokenName] = targetToken;
       
       return {
         ...state,
@@ -234,6 +395,18 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
       return {
         ...state,
         name: action.name
+      };
+    
+    case 'SET_COLOR_INTERPOLATION_MODE':
+      return {
+        ...state,
+        colorInterpolationMode: action.mode
+      };
+    
+    case 'SET_ICON_LIBRARY':
+      return {
+        ...state,
+        iconLibrary: action.library
       };
     
     default:

@@ -1,0 +1,123 @@
+# Saturation Fix Plan for Color Step Generation
+
+## Problem Analysis
+
+### Current Issues:
+1. When primary step saturation is set to 0, other steps retain high saturation values (80, 60, 40, 20)
+2. The saturation generation uses fixed min/max values (10-100) regardless of primary saturation
+3. No intelligent relationship between primary saturation and other steps
+4. Neutrals color handling needs special consideration (capped at 15% saturation)
+
+### Current Implementation:
+- `generateDualEasedSteps` is called with:
+  - Min saturation: 10
+  - Max saturation: 100
+  - Primary value: color.saturation
+- This creates a range from 10-100 with the primary value somewhere in between
+- When primary saturation is 0, lighter steps still go up to 100 and darker steps down to 10
+
+## Proposed Solution
+
+### 1. Smart Saturation Scaling
+Create a new function `generateSmartSaturationSteps` that considers:
+- Primary saturation as an influence on the entire scale
+- Proportional relationships between steps
+- Special handling for low saturation values
+- Preserve some variation even at low saturations for visual interest
+
+### 2. Implementation Strategy
+
+#### A. Add new saturation generation function
+```typescript
+export function generateSmartSaturationSteps(
+  steps: number,
+  primaryIndex: number,
+  primarySaturation: number,
+  colorType: 'standard' | 'neutral' | 'utility',
+  lightEasingCurve: EasingCurve = 'linear',
+  darkEasingCurve: EasingCurve = 'linear',
+  customLightCurve?: number[],
+  customDarkCurve?: number[]
+): number[]
+```
+
+#### B. Saturation scaling logic:
+1. **When primary saturation is 0-10%:**
+   - All steps should be in the 0-15% range
+   - Use subtle variations (e.g., 0, 2, 4, 6, 8, 10, 12)
+   - This creates true grayscale with minimal color
+
+2. **When primary saturation is 10-30%:**
+   - Scale proportionally: max = primarySaturation * 1.5
+   - Min = primarySaturation * 0.3
+   - Creates muted color scales
+
+3. **When primary saturation is 30-70%:**
+   - Scale with moderate range: max = primarySaturation + 30
+   - Min = primarySaturation * 0.5
+   - Balanced color variation
+
+4. **When primary saturation is 70-100%:**
+   - Full range available: max = 100
+   - Min = primarySaturation * 0.6
+   - Vibrant color scales
+
+#### C. Special cases:
+1. **Neutrals:** Always cap at 15% regardless of input
+2. **Utility colors:** Use tighter ranges for consistency
+3. **LCH mode:** Adjust chroma proportionally instead of saturation
+
+### 3. Update ColorControl.tsx
+Replace the saturation generation call:
+```typescript
+// OLD
+const saturationValues = generateDualEasedSteps(
+  steps,
+  primaryStepIndex,
+  color.saturation,
+  10, // Min saturation
+  100, // Max saturation
+  ...
+);
+
+// NEW
+const saturationValues = generateSmartSaturationSteps(
+  steps,
+  primaryStepIndex,
+  color.saturation,
+  tokenName === 'neutrals' ? 'neutral' : 
+  isUtilityColor ? 'utility' : 'standard',
+  color.saturationEasingLight || 'linear',
+  color.saturationEasingDark || 'linear',
+  color.customSaturationCurveLight,
+  color.customSaturationCurveDark
+);
+```
+
+### 4. Update LCH color generation
+Modify `generateLchColorScale` to use proportional chroma scaling:
+```typescript
+// Scale chroma based on base saturation
+const chromaScale = baseSaturation / 100;
+stepC = baseLch.c * chromaScale * (1 - lightnessRatio * 0.5);
+```
+
+### 5. Add Saturation Mode Toggle (Future Enhancement)
+Consider adding a toggle for saturation behavior:
+- **Proportional Mode** (default): Scales with primary saturation
+- **Independent Mode**: Uses full range regardless of primary
+- **Locked Mode**: All steps use exact primary saturation
+
+## Benefits
+1. More intuitive behavior when adjusting primary saturation
+2. True grayscale when saturation is 0
+3. Maintains visual harmony across the scale
+4. Respects color type constraints (neutrals, utility colors)
+5. Works consistently in both HSL and LCH modes
+
+## Testing Scenarios
+1. Set primary saturation to 0 → all steps should be grayscale
+2. Set primary saturation to 50 → steps should range ~25-80
+3. Set neutral saturation to any value → should cap at 15
+4. Test with different easing curves
+5. Verify LCH mode behaves similarly 

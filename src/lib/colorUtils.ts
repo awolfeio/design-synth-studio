@@ -3,6 +3,10 @@
  * Convert HSLA values to a HEX color string
  */
 export function hslaToHex(h: number, s: number, l: number, a: number = 1): string {
+  // Normalize hue to 0-360 range (360 becomes 0)
+  h = h % 360;
+  if (h < 0) h += 360;
+  
   // Convert hsl to rgb
   s /= 100;
   l /= 100;
@@ -84,8 +88,9 @@ export function hexToHsla(hex: string): { h: number; s: number; l: number; a: nu
     h = Math.round(h * 60);
   }
 
-  s = Math.round(s * 100);
-  l = Math.round(l * 100);
+  // Use higher precision to reduce rounding errors
+  s = Math.round(s * 1000) / 10; // One decimal place precision
+  l = Math.round(l * 1000) / 10; // One decimal place precision
 
-  return { h, s, l, a };
+  return { h: Math.round(h * 10) / 10, s, l, a };
 }

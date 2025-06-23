@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import ColorSystem from "./pages/ColorSystem";
 import Typography from "./pages/Typography";
 import Preview from "./pages/Preview";
+import Icons from "./pages/Icons";
 import RootLayout from "./components/Layout/RootLayout";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/" element={<RootLayout><Index /></RootLayout>} />
           <Route path="/colors" element={<RootLayout><ColorSystem /></RootLayout>} />
           <Route path="/typography" element={<RootLayout><Typography /></RootLayout>} />
+          <Route path="/icons" element={<RootLayout><Icons /></RootLayout>} />
           <Route path="/preview" element={<RootLayout><Preview /></RootLayout>} />
           <Route path="*" element={<RootLayout><NotFound /></RootLayout>} />
         </Routes>

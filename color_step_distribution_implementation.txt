@@ -1,0 +1,85 @@
+### Plan: Advanced Color Step Distribution Control
+
+#### 1. The Problem: Non-Linear Perceptual Color Spacing
+
+The core issue is that linear interpolation of color properties (especially lightness) does not produce perceptually uniform steps. This results in:
+-   **Mid-tone Redundancy:** Steps in the middle of the color scale (e.g., 400-600) appear too similar, lacking distinctness.
+-   **Extreme-tone Harshness:** Steps at the lightest and darkest ends can feel too far apart, lacking the subtlety needed for UI surface and state colors (e.g., hover, active states).
+
+Our goal is to implement a system that provides a more perceptually accurate baseline by default, while giving designers intuitive and powerful controls to fine-tune the distribution of color steps.
+
+---
+
+#### 2. Proposed Features
+
+This solution is composed of three interconnected features that build upon the existing easing curve system.
+
+##### **Feature 1: Dual Easing Curves for Light & Dark Ranges**
+
+This is the foundational technical enhancement that will enable more nuanced control.
+
+-   **Concept:** Instead of a single easing curve for the entire color scale, we will split the scale at the "primary" step. This creates two independently controllable segments:
+    1.  **Light Range:** From the lightest step up to the primary step.
+    2.  **Dark Range:** From the primary step down to the darkest step.
+    Each range will have its own easing curve for both lightness and saturation. This allows for creating a gentle progression at the ends of the scale while "carving out" more space for the mid-tones.
+
+-   **Implementation Steps:**
+    1.  **Update `ColorToken` Type (`src/types/designTokens.ts`):**
+        -   Rename `lightnessEasing` to `lightnessEasingLight` and `saturationEasing` to `saturationEasingLight`.
+        -   Add new properties: `lightnessEasingDark: EasingCurve` and `saturationEasingDark: EasingCurve`.
+    2.  **Update `DesignSystemContext.tsx`:**
+        -   Modify `defaultColorToken` to include the new properties, defaulting them to `'linear'`.
+        -   Update the `designSystemReducer` to handle dispatches for these four new properties.
+    3.  **Update `ColorControlSidebar.tsx`:**
+        -   Under "Distribution Curves", replace the single `EasingCurveEditor` for "Lightness Distribution" with two separate editors:
+            -   **Light Range Curve** (controls `lightnessEasingLight`)
+            -   **Dark Range Curve** (controls `lightnessEasingDark`)
+        -   Repeat this for "Saturation Distribution".
+    4.  **Refactor `generateEasedSteps` in `src/lib/easingUtils.ts`:**
+        -   Modify the function signature to accept separate easing curves for the light and dark ranges.
+        -   Inside the function, apply the appropriate easing function based on whether the current step `i` is less than or greater than the `primaryIndex`.
+
+##### **Feature 2: Perceptual Range Compression Sliders (Intuitive UI)**
+
+While dual curves are powerful, they can be abstract. This feature provides a more direct and intuitive way to control step density.
+
+-   **Concept:** Introduce two sliders that abstract away the complexity of bezier curves:
+    -   **Light Step Compression:** Controls the density of steps in the light range.
+    -   **Dark Step Compression:** Controls the density of steps in the dark range.
+    These sliders will range from -100 (Expanded) to 100 (Compressed), with 0 representing a linear distribution. A positive value will "compress" steps toward the extreme end (e.g., making the lightest colors closer to pure white), creating more separation near the middle. A negative value will "expand" them, pulling them closer to the primary color.
+
+-   **Implementation Steps:**
+    1.  **UI/UX Strategy in `ColorControlSidebar.tsx`:**
+        -   Introduce a toggle or tabs to switch between a **"Simple"** and **"Advanced"** view for distribution controls.
+        -   The "Simple" view will show the new Compression sliders.
+        -   The "Advanced" view will show the four Easing Curve dropdowns from Feature 1.
+    2.  **Update `ColorToken` Type:**
+        -   Add `lightnessCompression: number` and `darknessCompression: number` (value from -100 to 100, default 0).
+    3.  **Update `ColorControl.tsx` Logic:**
+        -   When generating color steps, check if the "Simple" mode is active.
+        -   If so, use a new utility function to translate the compression value into a dynamic bezier curve, and pass that to the `generateEasedSteps` function. For example, a compression of 100 would generate a strong `ease-out` curve for the light range.
+
+##### **Feature 3: Visual Step Distribution Graph**
+
+To provide immediate visual feedback on how these controls affect the color scale.
+
+-   **Concept:** Render a simple line graph directly below the color swatches. This graph will plot the lightness value of each step, making the distribution curve tangible and immediately understandable. As the user adjusts the easing curves or compression sliders, the graph will update in real-time.
+
+-   **Implementation Steps:**
+    1.  **Create New Component (`src/components/Display/StepDistributionGraph.tsx`):**
+        -   The component will accept an array of numerical lightness values.
+        -   It will use SVG to render a line graph, plotting step index on the X-axis and lightness on the Y-axis.
+    2.  **Integrate into `ColorControl.tsx`:**
+        -   After the final lightness values for all steps are calculated in the `generateColorSwatches` function, pass this array to the `<StepDistributionGraph />` component.
+        -   Render the graph below the main color swatch grid.
+
+---
+
+#### 3. New Default Baseline Recommendation
+
+Upon implementing these features, we should change the default color generation to provide a better out-of-the-box experience.
+
+-   **Recommendation:** Set the default easing curves to create more perceptual distance in the mid-tones.
+    -   `lightnessEasingLight`: **'ease-out'** (steps start close together at the light end and spread out as they approach the primary color).
+    -   `lightnessEasingDark`: **'ease-in'** (steps start spread out after the primary color and get closer together at the dark end).
+This new baseline will immediately address the core problem of redundant mid-tones and serve as a more robust starting point for designers. 

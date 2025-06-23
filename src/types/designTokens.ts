@@ -1,5 +1,9 @@
 export type StepCurve = 'none' | 'skew-light' | 'skew-dark';
 
+export type ColorHarmony = 'none' | 'complementary' | 'triadic' | 'analogous' | 'split-complementary';
+
+export type EasingCurve = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'ease-in-cubic' | 'ease-out-cubic' | 'custom';
+
 export type ColorToken = {
   hue: number;
   saturation: number;
@@ -9,6 +13,26 @@ export type ColorToken = {
   skewLightIntensity: number;
   skewDarkIntensity: number;
   primaryStepIndex?: number; // Optional - only used for neutrals
+  harmonySource?: string; // The color token this color is harmonized from
+  harmonyType?: ColorHarmony; // The type of harmony applied
+  // Dual easing curves for light and dark ranges
+  lightnessEasingLight?: EasingCurve; // Easing curve for lightness distribution (light range)
+  lightnessEasingDark?: EasingCurve; // Easing curve for lightness distribution (dark range)
+  saturationEasingLight?: EasingCurve; // Easing curve for saturation distribution (light range)
+  saturationEasingDark?: EasingCurve; // Easing curve for saturation distribution (dark range)
+  // Compression values for simple mode
+  lightnessCompression?: number; // -100 to 100, controls light range density
+  darknessCompression?: number; // -100 to 100, controls dark range density
+  // Custom curves for advanced control
+  customLightnessCurveLight?: number[]; // Custom curve control points [x1, y1, x2, y2] for light range
+  customLightnessCurveDark?: number[]; // Custom curve control points [x1, y1, x2, y2] for dark range
+  customSaturationCurveLight?: number[]; // Custom curve control points [x1, y1, x2, y2] for light range
+  customSaturationCurveDark?: number[]; // Custom curve control points [x1, y1, x2, y2] for dark range
+  // Legacy properties (kept for backward compatibility, will be removed later)
+  lightnessEasing?: EasingCurve; 
+  saturationEasing?: EasingCurve;
+  customLightnessCurve?: number[];
+  customSaturationCurve?: number[];
 };
 
 export type ColorTokens = {
@@ -49,6 +73,10 @@ export type RadiusTokens = {
   full: number;
 };
 
+export type ColorInterpolationMode = 'hsl' | 'lch';
+
+export type IconLibrary = 'lucide' | 'heroicons' | 'tabler';
+
 export type DesignSystem = {
   name: string;
   colors: ColorTokens;
@@ -56,6 +84,8 @@ export type DesignSystem = {
   spacing: SpacingScale;
   radius: RadiusTokens;
   isDark: boolean;
+  colorInterpolationMode?: ColorInterpolationMode; // Default to 'hsl' if not specified
+  iconLibrary?: IconLibrary; // Default to 'lucide' if not specified
 };
 
 export type ComponentVariant = 'default' | 'outline' | 'ghost' | 'link';
