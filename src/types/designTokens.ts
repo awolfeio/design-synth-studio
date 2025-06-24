@@ -23,6 +23,10 @@ export type ColorToken = {
   // Compression values for simple mode
   lightnessCompression?: number; // -100 to 100, controls light range density
   darknessCompression?: number; // -100 to 100, controls dark range density
+  // Offset controls for fine-tuning
+  primaryOffset?: number; // 0 to 100, moves sibling steps away from primary
+  whiteOffset?: number; // 0 to 100, darkens the lightest step away from pure white
+  blackOffset?: number; // 0 to 100, lightens the darkest step away from pure black
   // Custom curves for advanced control
   customLightnessCurveLight?: number[]; // Custom curve control points [x1, y1, x2, y2] for light range
   customLightnessCurveDark?: number[]; // Custom curve control points [x1, y1, x2, y2] for dark range

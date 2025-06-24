@@ -18,6 +18,10 @@ const defaultColorToken: ColorToken = {
   // Compression values for simple mode (aligned with default easing curves)
   lightnessCompression: 50,   // Maps to ease-out for light range
   darknessCompression: -50,   // Maps to ease-in for dark range
+  // Offset controls with conservative defaults
+  primaryOffset: 0,     // No offset by default
+  whiteOffset: 0,       // Pure white by default
+  blackOffset: 0,       // Pure black by default
   // Legacy properties for backward compatibility
   lightnessEasing: 'linear',
   saturationEasing: 'linear',
@@ -152,8 +156,9 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
                    action.property === 'customSaturationCurveLight' || action.property === 'customSaturationCurveDark') {
           // Handle all custom curve arrays
           targetToken[action.property] = Array.isArray(action.value) ? action.value : undefined;
-        } else if (action.property === 'lightnessCompression' || action.property === 'darknessCompression') {
-          // Handle compression values
+        } else if (action.property === 'lightnessCompression' || action.property === 'darknessCompression' ||
+                   action.property === 'primaryOffset' || action.property === 'whiteOffset' || action.property === 'blackOffset') {
+          // Handle compression and offset values
           targetToken[action.property] = typeof action.value === 'string' ? parseFloat(action.value) : 
                                         typeof action.value === 'number' ? action.value : 0;
         }

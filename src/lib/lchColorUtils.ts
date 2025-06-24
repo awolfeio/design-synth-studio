@@ -1,5 +1,5 @@
 import { formatHex, hsl, lch, rgb } from 'culori';
-import { generateDualEasedSteps, generateSmartSaturationSteps } from './easingUtils';
+import { generateDualEasedSteps, generateSmartSaturationSteps, generateDualEasedStepsWithOffsets } from './easingUtils';
 import { EasingCurve } from '@/types/designTokens';
 
 // Convert HSL to LCH
@@ -75,7 +75,10 @@ export function generateLchColorScale(
   customLightnessCurveDark?: number[],
   customSaturationCurveLight?: number[],
   customSaturationCurveDark?: number[],
-  tokenName?: string
+  tokenName?: string,
+  primaryOffset?: number,
+  whiteOffset?: number,
+  blackOffset?: number
 ): Array<{ h: number; s: number; l: number; a: number; hex: string }> {
   // Convert base color to LCH
   const baseLch = hslToLch(baseHue, baseSaturation, baseLightness, baseAlpha);
@@ -84,8 +87,8 @@ export function generateLchColorScale(
   const minL = tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 5;
   const maxL = 95;
   
-  // Generate lightness values using the same easing logic as HSL mode
-  const lightnessValues = generateDualEasedSteps(
+  // Generate lightness values using the enhanced easing logic with offset support
+  const lightnessValues = generateDualEasedStepsWithOffsets(
     steps,
     primaryStepIndex,
     baseLch.l, // Use LCH lightness instead of HSL
@@ -94,7 +97,10 @@ export function generateLchColorScale(
     lightnessEasingLight,
     lightnessEasingDark,
     customLightnessCurveLight,
-    customLightnessCurveDark
+    customLightnessCurveDark,
+    primaryOffset || 0,
+    whiteOffset || 0,
+    blackOffset || 0
   );
   
   // Generate chroma values using smart saturation scaling

@@ -11,7 +11,7 @@ import { HexColorPicker } from 'react-colorful';
 import { hslaToHex, hexToHsla } from '@/lib/colorUtils';
 import { ContrastColorPicker } from './ContrastColorPicker';
 import { generateLchColorScale } from '@/lib/lchColorUtils';
-import { generateEasedSteps, generateDualEasedSteps, generateSmartSaturationSteps } from '@/lib/easingUtils';
+import { generateEasedSteps, generateDualEasedSteps, generateSmartSaturationSteps, generateDualEasedStepsWithOffsets } from '@/lib/easingUtils';
 import { StepDistributionGraph } from '../Display/StepDistributionGraph';
 
 // Helper function to calculate contrast ratio
@@ -691,7 +691,10 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         color.customLightnessCurveDark,               // 12. customLightnessCurveDark
         color.customSaturationCurveLight,             // 13. customSaturationCurveLight
         color.customSaturationCurveDark,              // 14. customSaturationCurveDark
-        tokenName                                     // 15. tokenName
+        tokenName,                                    // 15. tokenName
+        color.primaryOffset || 0,                     // 16. primaryOffset
+        color.whiteOffset || 0,                       // 17. whiteOffset
+        color.blackOffset || 0                        // 18. blackOffset
       );
       
       // Generate swatches from LCH scale
@@ -903,9 +906,9 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       darkerStepSize = Math.max(darkerRange / darkerSteps, minStepDifference);
     }
     
-    // Generate lightness values using dual easing curves if available
+    // Generate lightness values using dual easing curves with offset support
     // Always use dual easing since we have defaults
-    const lightnessValues = generateDualEasedSteps(
+    const lightnessValues = generateDualEasedStepsWithOffsets(
       steps,
       primaryStepIndex,
       primaryLightness,
@@ -914,7 +917,10 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       color.lightnessEasingLight || 'ease-out',
       color.lightnessEasingDark || 'ease-in',
       color.customLightnessCurveLight,
-      color.customLightnessCurveDark
+      color.customLightnessCurveDark,
+      color.primaryOffset || 0,
+      color.whiteOffset || 0,
+      color.blackOffset || 0
     );
     
     // Generate saturation values using smart saturation scaling
@@ -1154,17 +1160,17 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       {showSteps && (
         <>
           <div ref={swatchContainerRef}
-               className="grid gap-2 p-2" 
+               className="grid gap-2" 
                style={{ 
                  gridTemplateColumns: `repeat(${getColumnsPerRow()}, 1fr)`, 
                  width: '100%' 
                }}
-               key={`${color.lightnessCompression}-${color.darknessCompression}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+               key={`${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
             {generateColorSwatches()}
           </div>
           
           {/* Step distribution graph */}
-          <div className="w-full px-2 mt-4" key={`graph-${color.lightnessCompression}-${color.darknessCompression}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+          <div className="w-full px-2 mt-4" key={`graph-${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
             <StepDistributionGraph
               lightnessValues={(() => {
                 const steps = Math.round(color.steps);
@@ -1172,7 +1178,7 @@ export const ColorControl: React.FC<ColorControlProps> = ({
                 
                 // Generate the same lightness values as used in the swatches
                 // Always use dual easing since we have defaults
-                return generateDualEasedSteps(
+                return generateDualEasedStepsWithOffsets(
                   steps,
                   primaryStepIndex,
                   color.lightness,
@@ -1181,7 +1187,10 @@ export const ColorControl: React.FC<ColorControlProps> = ({
                   color.lightnessEasingLight || 'ease-out',
                   color.lightnessEasingDark || 'ease-in',
                   color.customLightnessCurveLight,
-                  color.customLightnessCurveDark
+                  color.customLightnessCurveDark,
+                  color.primaryOffset || 0,
+                  color.whiteOffset || 0,
+                  color.blackOffset || 0
                 );
               })()}
               primaryStepIndex={getPrimaryStepIndex()}

@@ -103,6 +103,94 @@ export function generateDualEasedSteps(
   return values;
 }
 
+// Enhanced version with offset controls
+export function generateDualEasedStepsWithOffsets(
+  steps: number,
+  primaryIndex: number,
+  primaryValue: number,
+  minValue: number,
+  maxValue: number,
+  lightEasingCurve: EasingCurve = 'linear',
+  darkEasingCurve: EasingCurve = 'linear',
+  customLightCurve?: number[],
+  customDarkCurve?: number[],
+  primaryOffset: number = 0,
+  whiteOffset: number = 0,
+  blackOffset: number = 0
+): number[] {
+  // Apply offsets to the range values
+  const adjustedMinValue = applyBlackOffset(minValue, blackOffset);
+  const adjustedMaxValue = applyWhiteOffset(maxValue, whiteOffset);
+  
+  // Generate base values
+  const baseValues = generateDualEasedSteps(
+    steps,
+    primaryIndex,
+    primaryValue,
+    adjustedMinValue,
+    adjustedMaxValue,
+    lightEasingCurve,
+    darkEasingCurve,
+    customLightCurve,
+    customDarkCurve
+  );
+  
+  // Apply primary offset to sibling steps
+  if (primaryOffset > 0) {
+    return applyPrimaryOffset(baseValues, primaryIndex, primaryOffset);
+  }
+  
+  return baseValues;
+}
+
+// Apply white offset (darkens the lightest step away from pure white)
+function applyWhiteOffset(maxValue: number, whiteOffset: number): number {
+  if (whiteOffset === 0) return maxValue;
+  
+  // Convert 0-100 offset to 0-1 multiplier, then apply as percentage reduction
+  const offsetMultiplier = whiteOffset / 100;
+  const reduction = offsetMultiplier * 20; // Max 20% reduction from pure white (100 -> 80)
+  
+  return Math.max(0, maxValue - reduction);
+}
+
+// Apply black offset (lightens the darkest step away from pure black)
+function applyBlackOffset(minValue: number, blackOffset: number): number {
+  if (blackOffset === 0) return minValue;
+  
+  // Convert 0-100 offset to 0-1 multiplier, then apply as percentage increase
+  const offsetMultiplier = blackOffset / 100;
+  const increase = offsetMultiplier * 20; // Max 20% increase from pure black (0 -> 20)
+  
+  return Math.min(100, minValue + increase);
+}
+
+// Apply primary offset (moves sibling steps away from primary)
+function applyPrimaryOffset(values: number[], primaryIndex: number, primaryOffset: number): number[] {
+  if (primaryOffset === 0 || values.length <= 1) return values;
+  
+  const offsetMultiplier = primaryOffset / 100;
+  const adjustedValues = [...values];
+  
+  // Apply offset to the step before primary (if it exists)
+  if (primaryIndex > 0) {
+    const siblingIndex = primaryIndex - 1;
+    const currentDiff = values[primaryIndex] - values[siblingIndex];
+    const additionalOffset = currentDiff * offsetMultiplier * 0.5; // Max 50% additional separation
+    adjustedValues[siblingIndex] = Math.max(0, values[siblingIndex] - additionalOffset);
+  }
+  
+  // Apply offset to the step after primary (if it exists)
+  if (primaryIndex < values.length - 1) {
+    const siblingIndex = primaryIndex + 1;
+    const currentDiff = values[siblingIndex] - values[primaryIndex];
+    const additionalOffset = currentDiff * offsetMultiplier * 0.5; // Max 50% additional separation
+    adjustedValues[siblingIndex] = Math.min(100, values[siblingIndex] + additionalOffset);
+  }
+  
+  return adjustedValues;
+}
+
 // Generate smart saturation values that scale proportionally with primary saturation
 export function generateSmartSaturationSteps(
   steps: number,

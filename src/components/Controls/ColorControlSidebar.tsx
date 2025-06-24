@@ -380,13 +380,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
           <div className="border-t pt-4">
             <h4 className="text-xs font-medium mb-3">Distribution Curves</h4>
             
-            <Tabs defaultValue="simple" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-8">
-                <TabsTrigger value="simple" className="text-xs h-6 py-1">Simple</TabsTrigger>
-                <TabsTrigger value="advanced" className="text-xs h-6 py-1">Advanced</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="simple" className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4">
                 {/* Compression sliders for intuitive control */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -524,54 +518,108 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                   </div>
                 </div>
                 
+                {/* Offset Controls */}
+                <div className="space-y-4 pt-4 border-t">
+                  <h5 className="text-xs font-medium text-muted-foreground">Step Offset Controls</h5>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-xs">Primary Offset</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={color.primaryOffset || 0}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const clampedValue = Math.max(0, Math.min(100, value));
+                          updateColorProperty('primaryOffset', clampedValue);
+                        }}
+                        className="w-16 h-6 text-xs"
+                      />
+                    </div>
+                    <div className="relative mt-2">
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[color.primaryOffset || 0]}
+                        onValueChange={([value]) => updateColorProperty('primaryOffset', value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Moves sibling steps further away from primary step
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-xs">White Offset</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={color.whiteOffset || 0}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const clampedValue = Math.max(0, Math.min(100, value));
+                          updateColorProperty('whiteOffset', clampedValue);
+                        }}
+                        className="w-16 h-6 text-xs"
+                      />
+                    </div>
+                    <div className="relative mt-2">
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[color.whiteOffset || 0]}
+                        onValueChange={([value]) => updateColorProperty('whiteOffset', value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Darkens the lightest step away from pure white
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-xs">Black Offset</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={color.blackOffset || 0}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const clampedValue = Math.max(0, Math.min(100, value));
+                          updateColorProperty('blackOffset', clampedValue);
+                        }}
+                        className="w-16 h-6 text-xs"
+                      />
+                    </div>
+                    <div className="relative mt-2">
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[color.blackOffset || 0]}
+                        onValueChange={([value]) => updateColorProperty('blackOffset', value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Lightens the darkest step away from pure black
+                    </p>
+                  </div>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   Adjust how tightly color steps cluster near the extremes
                 </p>
-              </TabsContent>
-              
-              <TabsContent value="advanced" className="space-y-4 mt-4">
-                {/* Dual easing curves for precise control */}
-                <div className="space-y-3">
-                  <h5 className="text-xs font-medium text-muted-foreground">Lightness Curves</h5>
-                  
-                  <EasingCurveEditor
-                    label="Light Range (Steps before primary)"
-                    value={color.lightnessEasingLight || 'ease-out'}
-                    customCurve={color.customLightnessCurveLight}
-                    onChange={(curve) => updateColorProperty('lightnessEasingLight', curve)}
-                  />
-                  
-                  <EasingCurveEditor
-                    label="Dark Range (Steps after primary)"
-                    value={color.lightnessEasingDark || 'ease-in'}
-                    customCurve={color.customLightnessCurveDark}
-                    onChange={(curve) => updateColorProperty('lightnessEasingDark', curve)}
-                  />
-                </div>
-                
-                <div className="space-y-3">
-                  <h5 className="text-xs font-medium text-muted-foreground">Saturation Curves</h5>
-                  
-                  <EasingCurveEditor
-                    label="Light Range (Steps before primary)"
-                    value={color.saturationEasingLight || 'linear'}
-                    customCurve={color.customSaturationCurveLight}
-                    onChange={(curve) => updateColorProperty('saturationEasingLight', curve)}
-                  />
-                  
-                  <EasingCurveEditor
-                    label="Dark Range (Steps after primary)"
-                    value={color.saturationEasingDark || 'linear'}
-                    customCurve={color.customSaturationCurveDark}
-                    onChange={(curve) => updateColorProperty('saturationEasingDark', curve)}
-                  />
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  Fine-tune distribution curves for each range independently
-                </p>
-              </TabsContent>
-            </Tabs>
+            </div>
           </div>
           
           {/* Legacy Skew Controls - Hidden but kept for backwards compatibility */}
