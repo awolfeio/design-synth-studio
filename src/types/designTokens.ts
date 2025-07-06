@@ -27,6 +27,7 @@ export type ColorToken = {
   primaryOffset?: number; // 0 to 100, moves sibling steps away from primary
   whiteOffset?: number; // 0 to 100, darkens the lightest step away from pure white
   blackOffset?: number; // 0 to 100, lightens the darkest step away from pure black
+  stepPadding?: number; // 0 to 100, minimum separation between adjacent steps (default: 1%)
   // Custom curves for advanced control
   customLightnessCurveLight?: number[]; // Custom curve control points [x1, y1, x2, y2] for light range
   customLightnessCurveDark?: number[]; // Custom curve control points [x1, y1, x2, y2] for dark range
@@ -79,7 +80,7 @@ export type RadiusTokens = {
 
 export type ColorInterpolationMode = 'hsl' | 'lch';
 
-export type IconLibrary = 'lucide' | 'heroicons' | 'tabler';
+export type IconLibrary = 'lucide' | 'heroicons' | 'tabler' | 'nucleo';
 
 export type DesignSystem = {
   name: string;

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, ExternalLink } from 'lucide-react';
 
 // Import icons from each library
 import * as LucideIcons from 'lucide-react';
@@ -424,8 +425,11 @@ export const IconPreview: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const currentLibrary = system.iconLibrary || 'lucide';
 
-  // Get the appropriate icon set
-  const iconSet = iconSets[currentLibrary];
+  // Get the appropriate icon set, fallback to lucide if not available
+  const iconSet = iconSets[currentLibrary] || iconSets.lucide;
+
+  // Check if this is Nucleo (which doesn't have preview icons yet)
+  const isNucleoSelected = currentLibrary === 'nucleo';
 
   // Filter icons based on search query
   const filteredIcons = useMemo(() => {
@@ -438,42 +442,82 @@ export const IconPreview: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            type="text"
-            placeholder="Search icons..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-        {filteredIcons.map(([name, Icon]) => (
-          <div
-            key={name}
-            className="flex flex-col items-center justify-center p-4 rounded-lg border hover:bg-accent/5 hover:border-accent transition-colors cursor-pointer group"
-          >
-            <Icon className="h-6 w-6 mb-2 text-foreground group-hover:text-accent transition-colors" />
-            <span className="text-xs text-center text-muted-foreground group-hover:text-foreground transition-colors">
-              {name.replace(/Icon|Icon$/g, '')}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {filteredIcons.length === 0 && (
+      {isNucleoSelected ? (
+        // Special message for Nucleo since we don't have preview icons yet
         <div className="text-center py-12">
-          <p className="text-muted-foreground">No icons found matching "{searchQuery}"</p>
+          <div className="mb-4">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" viewBox="0 0 40 40">
+                <g fill="currentColor">
+                  <path fill="var(--color-contrast-low)"
+                      d="M22.5 20a3.002 3.002 0 0 1-6 0 3.002 3.002 0 0 1 6 0z"></path>
+                  <path id="logo-path-right"
+                      d="M32.504 4.333a2.997 2.997 0 0 1 1.499 2.598v19.706a3.002 3.002 0 0 1-1.5 2.599l-4.005 2.312-8.998-5.195 5.5-3.176V0l7.504 4.333z"
+                      fill="currentColor"></path>
+                  <path id="logo-path-left"
+                      d="M14.003 40V16.824l5.5-3.176-8.998-5.195L6.5 10.765A2.998 2.998 0 0 0 5 13.364V33.07a3 3 0 0 0 1.499 2.598L14.003 40z"
+                      fill="currentColor"></path>
+                </g>
+              </svg>
+            </div>
+            <p className="text-muted-foreground mb-4">
+              Nucleo is a premium icon library with over 31,000 icons. Preview icons are not available in this demo.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Visit Nucleo to browse their full collection and download icons for your projects.
+            </p>
+            <Button 
+              onClick={() => window.open('https://nucleoapp.com/?ref=20331', '_blank')}
+              className="inline-flex items-center gap-2"
+            >
+              Get Nucleo
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search icons..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
 
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        Showing {filteredIcons.length} of {Object.keys(iconSet).length} icons
-      </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            {filteredIcons.map(([name, Icon]) => {
+              const IconComponent = Icon as React.ComponentType<{ className?: string }>;
+              return (
+                <div
+                  key={name}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border hover:bg-accent/5 hover:border-accent transition-colors cursor-pointer group"
+                >
+                  <IconComponent className="h-6 w-6 mb-2 text-foreground" />
+                  <span className="text-xs text-center text-muted-foreground group-hover:text-foreground transition-colors">
+                    {name.replace(/Icon|Icon$/g, '')}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredIcons.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No icons found matching "{searchQuery}"</p>
+            </div>
+          )}
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            Showing {filteredIcons.length} of {Object.keys(iconSet).length} icons
+          </div>
+        </>
+      )}
     </div>
   );
 }; 

@@ -78,7 +78,8 @@ export function generateLchColorScale(
   tokenName?: string,
   primaryOffset?: number,
   whiteOffset?: number,
-  blackOffset?: number
+  blackOffset?: number,
+  stepPadding?: number
 ): Array<{ h: number; s: number; l: number; a: number; hex: string }> {
   // Convert base color to LCH
   const baseLch = hslToLch(baseHue, baseSaturation, baseLightness, baseAlpha);
@@ -100,7 +101,8 @@ export function generateLchColorScale(
     customLightnessCurveDark,
     primaryOffset || 0,
     whiteOffset || 0,
-    blackOffset || 0
+    blackOffset || 0,
+    stepPadding || 1
   );
   
   // Generate chroma values using smart saturation scaling

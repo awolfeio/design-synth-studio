@@ -15,6 +15,51 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { compressionToEasing, getCompressionNotches } from '@/lib/easingUtils';
 import { useColorControl } from '@/contexts/ColorControlContext';
 
+// Custom icon components
+const CurvesIcon: React.FC<{ className?: string }> = ({ className = "h-4 w-4" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="16" 
+    height="16" 
+    viewBox="0 0 18 18"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M2.75 14.75C12 14.75 6 3.25 15.25 3.25" />
+    <path d="M8.25 3.75H5.75" />
+    <path d="M4 5.5C4.966 5.5 5.75 4.716 5.75 3.75C5.75 2.784 4.966 2 4 2C3.034 2 2.25 2.784 2.25 3.75C2.25 4.716 3.034 5.5 4 5.5Z" />
+    <path d="M9.75 14.25H12.25" />
+    <path d="M14 16C13.034 16 12.25 15.216 12.25 14.25C12.25 13.284 13.034 12.5 14 12.5C14.966 12.5 15.75 13.284 15.75 14.25C15.75 15.216 14.966 16 14 16Z" />
+  </svg>
+);
+
+const ControlsIcon: React.FC<{ className?: string }> = ({ className = "h-4 w-4" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="16" 
+    height="16" 
+    viewBox="0 0 18 18"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="9" cy="9" r="7.25" />
+    <line x1="9.75" y1="6.75" x2="12.75" y2="6.75" />
+    <line x1="5.25" y1="6.75" x2="7.25" y2="6.75" />
+    <line x1="7.25" y1="5" x2="7.25" y2="8.5" />
+    <line x1="10.75" y1="11.25" x2="12.75" y2="11.25" />
+    <line x1="5.25" y1="11.25" x2="8.25" y2="11.25" />
+    <line x1="10.75" y1="9.5" x2="10.75" y2="13" />
+  </svg>
+);
+
 interface ColorControlSidebarProps {
   tokenName: string;
   label: string;
@@ -66,36 +111,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
       // Apply harmony from primary color
       updateColorProperty('harmonySource', 'primary');
       updateColorProperty('harmonyType', harmonyType);
-      
-      // Calculate and apply the new hue based on harmony type
-      const primaryHue = system.colors.primary.hue;
-      let newHue = primaryHue;
-      
-      switch (harmonyType) {
-        case 'complementary':
-          newHue = (primaryHue + 180) % 360;
-          break;
-        case 'triadic':
-          // For secondary, use +120, for accent use +240
-          newHue = tokenName === 'secondary' 
-            ? (primaryHue + 120) % 360 
-            : (primaryHue + 240) % 360;
-          break;
-        case 'analogous':
-          // For secondary, use +30, for accent use -30
-          newHue = tokenName === 'secondary'
-            ? (primaryHue + 30) % 360
-            : (primaryHue - 30 + 360) % 360;
-          break;
-        case 'split-complementary':
-          // For secondary, use +150, for accent use +210
-          newHue = tokenName === 'secondary'
-            ? (primaryHue + 150) % 360
-            : (primaryHue + 210) % 360;
-          break;
-      }
-      
-      updateColorProperty('hue', newHue);
+      // The context will handle calculating and applying the harmony colors
     }
   };
 
@@ -378,7 +394,10 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
           
           {/* Easing Curves */}
           <div className="border-t pt-4">
-            <h4 className="text-xs font-medium mb-3">Distribution Curves</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <CurvesIcon className="h-4 w-4" />
+              <h4 className="text-xs font-medium text-black">Distribution Curves</h4>
+            </div>
             
             <div className="space-y-4 mt-4">
                 {/* Compression sliders for intuitive control */}
@@ -520,7 +539,10 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                 
                 {/* Offset Controls */}
                 <div className="space-y-4 pt-4 border-t">
-                  <h5 className="text-xs font-medium text-muted-foreground">Step Offset Controls</h5>
+                  <div className="flex items-center gap-2">
+                    <ControlsIcon className="h-4 w-4" />
+                    <h5 className="text-xs font-medium text-black">Step Offset Controls</h5>
+                  </div>
                   
                   <div>
                     <div className="flex justify-between items-center mb-1">
@@ -548,7 +570,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                         className="flex-1"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Moves sibling steps further away from primary step
                     </p>
                   </div>
@@ -579,7 +601,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                         className="flex-1"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Darkens the lightest step away from pure white
                     </p>
                   </div>
@@ -610,15 +632,43 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                         className="flex-1"
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Lightens the darkest step away from pure black
                     </p>
                   </div>
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-xs">Step Padding</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={10}
+                        step={0.1}
+                        value={color.stepPadding || 1}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 1;
+                          const clampedValue = Math.max(1, Math.min(10, value));
+                          updateColorProperty('stepPadding', clampedValue);
+                        }}
+                        className="w-16 h-6 text-xs"
+                      />
+                    </div>
+                    <div className="relative mt-2">
+                      <Slider
+                        min={1}
+                        max={10}
+                        step={0.1}
+                        value={[color.stepPadding || 1]}
+                        onValueChange={([value]) => updateColorProperty('stepPadding', value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Minimum lightness separation between adjacent steps
+                    </p>
+                  </div>
                 </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Adjust how tightly color steps cluster near the extremes
-                </p>
             </div>
           </div>
           

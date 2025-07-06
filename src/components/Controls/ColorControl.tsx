@@ -694,7 +694,8 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         tokenName,                                    // 15. tokenName
         color.primaryOffset || 0,                     // 16. primaryOffset
         color.whiteOffset || 0,                       // 17. whiteOffset
-        color.blackOffset || 0                        // 18. blackOffset
+        color.blackOffset || 0,                       // 18. blackOffset
+        color.stepPadding || 1                        // 19. stepPadding
       );
       
       // Generate swatches from LCH scale
@@ -869,8 +870,6 @@ export const ColorControl: React.FC<ColorControlProps> = ({
     const primaryLightness = color.lightness;
     const minLightness = 2;   // Darkest possible
     const maxLightness = 98;  // Lightest possible
-    const minStepDifference = 1; // Minimum 1% difference between steps
-    
     // Calculate how much lightness space we have for steps
     const lighterSteps = primaryStepIndex; // Steps lighter than primary
     const darkerSteps = steps - primaryStepIndex - 1; // Steps darker than primary
@@ -883,27 +882,6 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       // For utility colors, don't let the darkest step go below 25% lightness
       // This ensures the darkest step is only as dark as what would be the second-darkest
       adjustedMinLightness = 25;
-    }
-    
-    // Calculate available lightness ranges
-    const lighterRange = maxLightness - primaryLightness; // Space above primary
-    const darkerRange = primaryLightness - adjustedMinLightness;  // Space below primary
-    
-    // Check if we have enough space for all steps with minimum differences
-    const requiredLighterSpace = lighterSteps * minStepDifference;
-    const requiredDarkerSpace = darkerSteps * minStepDifference;
-    
-    // Calculate actual step sizes, adjusting if we don't have enough space
-    let lighterStepSize = lighterSteps > 0 ? Math.max(lighterRange / lighterSteps, minStepDifference) : 0;
-    let darkerStepSize = darkerSteps > 0 ? Math.max(darkerRange / darkerSteps, minStepDifference) : 0;
-    
-    // If we don't have enough space, compress step sizes but maintain minimum differences
-    if (requiredLighterSpace > lighterRange && lighterSteps > 0) {
-      lighterStepSize = Math.max(lighterRange / lighterSteps, minStepDifference);
-    }
-    
-    if (requiredDarkerSpace > darkerRange && darkerSteps > 0) {
-      darkerStepSize = Math.max(darkerRange / darkerSteps, minStepDifference);
     }
     
     // Generate lightness values using dual easing curves with offset support
@@ -920,7 +898,8 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       color.customLightnessCurveDark,
       color.primaryOffset || 0,
       color.whiteOffset || 0,
-      color.blackOffset || 0
+      color.blackOffset || 0,
+      color.stepPadding || 1
     );
     
     // Generate saturation values using smart saturation scaling
@@ -946,20 +925,8 @@ export const ColorControl: React.FC<ColorControlProps> = ({
       });
     }
     
-    // The easing curves should already produce valid values, but let's ensure minimum differences
-    // for edge cases where the range is too small
-    for (let i = 1; i < steps; i++) {
-      const currentLightness = adjustedValues[i].lightness;
-      const previousLightness = adjustedValues[i-1].lightness;
-      
-      // Ensure each step is at least minStepDifference darker than the previous
-      if (currentLightness >= previousLightness - minStepDifference) {
-        adjustedValues[i].lightness = Math.max(
-          previousLightness - minStepDifference,
-          adjustedMinLightness
-        );
-      }
-    }
+    // The easing curves and step padding enforcement should already produce valid values
+    // No additional manual adjustment needed since we now use configurable stepPadding
     
     // Generate the actual color swatches with calculated values
     for (let i = 0; i < steps; i++) {
@@ -1165,33 +1132,34 @@ export const ColorControl: React.FC<ColorControlProps> = ({
                  gridTemplateColumns: `repeat(${getColumnsPerRow()}, 1fr)`, 
                  width: '100%' 
                }}
-               key={`${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+               key={`${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.stepPadding}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
             {generateColorSwatches()}
           </div>
           
           {/* Step distribution graph */}
-          <div className="w-full px-2 mt-4" key={`graph-${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
+          <div className="w-full px-2 mt-4" key={`graph-${color.lightnessCompression}-${color.darknessCompression}-${color.primaryOffset}-${color.whiteOffset}-${color.blackOffset}-${color.stepPadding}-${color.lightnessEasingLight}-${color.lightnessEasingDark}-${JSON.stringify(color.customLightnessCurveLight)}-${JSON.stringify(color.customLightnessCurveDark)}`}>
             <StepDistributionGraph
               lightnessValues={(() => {
                 const steps = Math.round(color.steps);
                 const primaryStepIndex = getPrimaryStepIndex();
                 
                 // Generate the same lightness values as used in the swatches
-                // Always use dual easing since we have defaults
-                return generateDualEasedStepsWithOffsets(
-                  steps,
-                  primaryStepIndex,
-                  color.lightness,
-                  tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 2,
-                  98,
-                  color.lightnessEasingLight || 'ease-out',
-                  color.lightnessEasingDark || 'ease-in',
-                  color.customLightnessCurveLight,
-                  color.customLightnessCurveDark,
-                  color.primaryOffset || 0,
-                  color.whiteOffset || 0,
-                  color.blackOffset || 0
-                );
+                        // Always use dual easing since we have defaults
+        return generateDualEasedStepsWithOffsets(
+          steps,
+          primaryStepIndex,
+          color.lightness,
+          tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 2,
+          98,
+          color.lightnessEasingLight || 'ease-out',
+          color.lightnessEasingDark || 'ease-in',
+          color.customLightnessCurveLight,
+          color.customLightnessCurveDark,
+          color.primaryOffset || 0,
+          color.whiteOffset || 0,
+          color.blackOffset || 0,
+          color.stepPadding || 1
+        );
               })()}
               primaryStepIndex={getPrimaryStepIndex()}
               primaryColor={(() => {

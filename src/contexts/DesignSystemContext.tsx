@@ -22,6 +22,7 @@ const defaultColorToken: ColorToken = {
   primaryOffset: 0,     // No offset by default
   whiteOffset: 0,       // Pure white by default
   blackOffset: 0,       // Pure black by default
+  stepPadding: 1,       // Default 1% minimum separation between steps
   // Legacy properties for backward compatibility
   lightnessEasing: 'linear',
   saturationEasing: 'linear',
@@ -91,7 +92,7 @@ type ActionType =
   | { type: 'SET_SYSTEM'; system: DesignSystem }
   | { type: 'UPDATE_SYSTEM_NAME'; name: string }
   | { type: 'SET_COLOR_INTERPOLATION_MODE'; mode: 'hsl' | 'lch' }
-  | { type: 'SET_ICON_LIBRARY'; library: 'lucide' | 'heroicons' | 'tabler' };
+  | { type: 'SET_ICON_LIBRARY'; library: 'lucide' | 'heroicons' | 'tabler' | 'nucleo' };
 
 // Context type
 type DesignSystemContextType = {
@@ -146,6 +147,60 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
           } else if (action.property === 'harmonyType') {
             targetToken.harmonyType = action.value as ColorHarmony | undefined;
           }
+          
+          // If harmony is being set up and both source and type are now defined, calculate the harmony
+          if (targetToken.harmonySource === 'primary' && targetToken.harmonyType && targetToken.harmonyType !== 'none') {
+            const primaryColor = newColors.primary;
+            let newHue = primaryColor.hue;
+            
+            // Calculate the harmony hue based on the harmony type
+            switch (targetToken.harmonyType) {
+              case 'complementary':
+                newHue = (primaryColor.hue + 180) % 360;
+                break;
+              case 'triadic':
+                // For secondary, use +120, for accent use +240
+                newHue = action.tokenName === 'secondary' 
+                  ? (primaryColor.hue + 120) % 360 
+                  : (primaryColor.hue + 240) % 360;
+                break;
+              case 'analogous':
+                // For secondary, use +30, for accent use -30
+                newHue = action.tokenName === 'secondary'
+                  ? (primaryColor.hue + 30) % 360
+                  : (primaryColor.hue - 30 + 360) % 360;
+                break;
+              case 'split-complementary':
+                // For secondary, use +150, for accent use +210
+                newHue = action.tokenName === 'secondary'
+                  ? (primaryColor.hue + 150) % 360
+                  : (primaryColor.hue + 210) % 360;
+                break;
+            }
+            
+            // Apply the calculated hue
+            targetToken.hue = newHue;
+            
+            // Apply initial saturation and lightness inheritance for certain harmony types
+            if (targetToken.harmonyType === 'complementary') {
+              // Complementary colors inherit saturation and lightness for visual consistency
+              targetToken.saturation = primaryColor.saturation;
+              targetToken.lightness = primaryColor.lightness;
+            } else if (targetToken.harmonyType === 'analogous') {
+              // Analogous colors work well with similar saturation and lightness
+              targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
+              const variation = action.tokenName === 'secondary' ? 0.9 : 1.1;
+              targetToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+            } else if (targetToken.harmonyType === 'triadic') {
+              // Triadic colors can have slightly different saturation
+              targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
+            } else if (targetToken.harmonyType === 'split-complementary') {
+              // Split-complementary colors can inherit some properties
+              targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.95));
+              const variation = action.tokenName === 'secondary' ? 0.95 : 1.05;
+              targetToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+            }
+          }
         } else if (action.property === 'lightnessEasing' || action.property === 'saturationEasing' ||
                    action.property === 'lightnessEasingLight' || action.property === 'lightnessEasingDark' ||
                    action.property === 'saturationEasingLight' || action.property === 'saturationEasingDark') {
@@ -157,7 +212,8 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
           // Handle all custom curve arrays
           targetToken[action.property] = Array.isArray(action.value) ? action.value : undefined;
         } else if (action.property === 'lightnessCompression' || action.property === 'darknessCompression' ||
-                   action.property === 'primaryOffset' || action.property === 'whiteOffset' || action.property === 'blackOffset') {
+                   action.property === 'primaryOffset' || action.property === 'whiteOffset' || action.property === 'blackOffset' ||
+                   action.property === 'stepPadding') {
           // Handle compression and offset values
           targetToken[action.property] = typeof action.value === 'string' ? parseFloat(action.value) : 
                                         typeof action.value === 'number' ? action.value : 0;
@@ -200,38 +256,45 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
                 break;
             }
             
-            // Update the harmonized color with new hue and optionally inherit other properties
+            // Start with the updated hue
             const updatedToken = { ...colorToken, hue: newHue };
             
-            // For certain harmony types, also inherit saturation and lightness
-            if (action.property === 'saturation' || action.property === 'lightness') {
+            // Handle saturation and lightness inheritance based on harmony type and changed property
+            if (colorToken.harmonyType === 'complementary') {
               // Complementary colors can inherit saturation and lightness for visual consistency
-              if (colorToken.harmonyType === 'complementary') {
-                if (action.property === 'saturation') {
-                  updatedToken.saturation = primaryColor.saturation;
-                }
-                if (action.property === 'lightness') {
-                  updatedToken.lightness = primaryColor.lightness;
-                }
+              if (action.property === 'saturation') {
+                updatedToken.saturation = primaryColor.saturation;
               }
+              if (action.property === 'lightness') {
+                updatedToken.lightness = primaryColor.lightness;
+              }
+            } else if (colorToken.harmonyType === 'analogous') {
               // Analogous colors work well with similar saturation and lightness
-              else if (colorToken.harmonyType === 'analogous') {
-                if (action.property === 'saturation') {
-                  // Slightly vary saturation for analogous colors
-                  updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
-                }
-                if (action.property === 'lightness') {
-                  // Slightly vary lightness for analogous colors
-                  const variation = colorName === 'secondary' ? 0.9 : 1.1;
-                  updatedToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
-                }
+              if (action.property === 'saturation') {
+                // Slightly vary saturation for analogous colors
+                updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
               }
+              if (action.property === 'lightness') {
+                // Slightly vary lightness for analogous colors
+                const variation = colorName === 'secondary' ? 0.9 : 1.1;
+                updatedToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+              }
+            } else if (colorToken.harmonyType === 'triadic') {
               // Triadic colors maintain their own saturation/lightness but can be influenced
-              else if (colorToken.harmonyType === 'triadic') {
-                if (action.property === 'saturation') {
-                  // Triadic colors can have slightly different saturation
-                  updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
-                }
+              if (action.property === 'saturation') {
+                // Triadic colors can have slightly different saturation
+                updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
+              }
+            } else if (colorToken.harmonyType === 'split-complementary') {
+              // Split-complementary colors can inherit some properties
+              if (action.property === 'saturation') {
+                // Slightly vary saturation for split-complementary colors
+                updatedToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.95));
+              }
+              if (action.property === 'lightness') {
+                // Slightly vary lightness for split-complementary colors
+                const variation = colorName === 'secondary' ? 0.95 : 1.05;
+                updatedToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
               }
             }
             

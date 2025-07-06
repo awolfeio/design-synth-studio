@@ -116,7 +116,8 @@ export function generateDualEasedStepsWithOffsets(
   customDarkCurve?: number[],
   primaryOffset: number = 0,
   whiteOffset: number = 0,
-  blackOffset: number = 0
+  blackOffset: number = 0,
+  stepPadding: number = 1
 ): number[] {
   // Apply offsets to the range values
   const adjustedMinValue = applyBlackOffset(minValue, blackOffset);
@@ -136,11 +137,15 @@ export function generateDualEasedStepsWithOffsets(
   );
   
   // Apply primary offset to sibling steps
+  let finalValues = baseValues;
   if (primaryOffset > 0) {
-    return applyPrimaryOffset(baseValues, primaryIndex, primaryOffset);
+    finalValues = applyPrimaryOffset(finalValues, primaryIndex, primaryOffset);
   }
   
-  return baseValues;
+  // Apply step padding enforcement
+  finalValues = enforceStepPadding(finalValues, primaryIndex, stepPadding);
+  
+  return finalValues;
 }
 
 // Apply white offset (darkens the lightest step away from pure white)
@@ -165,28 +170,167 @@ function applyBlackOffset(minValue: number, blackOffset: number): number {
   return Math.min(100, minValue + increase);
 }
 
-// Apply primary offset (moves sibling steps away from primary)
+// Apply primary offset (pushes neighboring steps away from primary with cascading effect)
 function applyPrimaryOffset(values: number[], primaryIndex: number, primaryOffset: number): number[] {
   if (primaryOffset === 0 || values.length <= 1) return values;
   
   const offsetMultiplier = primaryOffset / 100;
   const adjustedValues = [...values];
+  const primaryValue = values[primaryIndex];
   
-  // Apply offset to the step before primary (if it exists)
+  // Calculate base push distance - more aggressive than before
+  const basePushDistance = offsetMultiplier * 15; // Up to 15% lightness units at max offset
+  
+  // Push lighter neighbors away from primary (towards lighter values)
   if (primaryIndex > 0) {
-    const siblingIndex = primaryIndex - 1;
-    const currentDiff = values[primaryIndex] - values[siblingIndex];
-    const additionalOffset = currentDiff * offsetMultiplier * 0.5; // Max 50% additional separation
-    adjustedValues[siblingIndex] = Math.max(0, values[siblingIndex] - additionalOffset);
+    for (let i = primaryIndex - 1; i >= 0; i--) {
+      const distanceFromPrimary = primaryIndex - i;
+      
+      // Primary neighbor gets the full push, others get proportionally less
+      // But still get a significant push to create the cascading effect
+      const pushRatio = distanceFromPrimary === 1 ? 1.0 : // Immediate neighbor gets full effect
+                        distanceFromPrimary === 2 ? 0.7 : // Second neighbor gets 70%
+                        distanceFromPrimary === 3 ? 0.5 : // Third neighbor gets 50%
+                        Math.max(0.3, 1.0 / distanceFromPrimary); // Further neighbors get at least 30%
+      
+      const stepPush = basePushDistance * pushRatio;
+      
+      // Push the step towards lighter values (increase lightness)
+      adjustedValues[i] = Math.min(100, values[i] + stepPush);
+    }
   }
   
-  // Apply offset to the step after primary (if it exists)
+  // Push darker neighbors away from primary (towards darker values)
   if (primaryIndex < values.length - 1) {
-    const siblingIndex = primaryIndex + 1;
-    const currentDiff = values[siblingIndex] - values[primaryIndex];
-    const additionalOffset = currentDiff * offsetMultiplier * 0.5; // Max 50% additional separation
-    adjustedValues[siblingIndex] = Math.min(100, values[siblingIndex] + additionalOffset);
+    for (let i = primaryIndex + 1; i < values.length; i++) {
+      const distanceFromPrimary = i - primaryIndex;
+      
+      // Primary neighbor gets the full push, others get proportionally less
+      // But still get a significant push to create the cascading effect
+      const pushRatio = distanceFromPrimary === 1 ? 1.0 : // Immediate neighbor gets full effect
+                        distanceFromPrimary === 2 ? 0.7 : // Second neighbor gets 70%
+                        distanceFromPrimary === 3 ? 0.5 : // Third neighbor gets 50%
+                        Math.max(0.3, 1.0 / distanceFromPrimary); // Further neighbors get at least 30%
+      
+      const stepPush = basePushDistance * pushRatio;
+      
+      // Push the step towards darker values (decrease lightness)
+      adjustedValues[i] = Math.max(0, values[i] - stepPush);
+    }
   }
+  
+  return adjustedValues;
+}
+
+// Enforce minimum step padding between adjacent steps with proper cascading
+function enforceStepPadding(values: number[], primaryIndex: number, stepPadding: number): number[] {
+  if (stepPadding <= 0 || values.length <= 1) return values;
+  
+  const adjustedValues = [...values];
+  const primaryValue = adjustedValues[primaryIndex];
+  
+  // First pass: Fix violations by cascading from primary outward
+  // This ensures we never break the ordering constraint
+  
+  // Cascade lighter steps (indices 0 to primaryIndex-1)
+  // Work backwards from primary to ensure each step is at least stepPadding lighter than the next
+  for (let i = primaryIndex - 1; i >= 0; i--) {
+    const nextStepValue = adjustedValues[i + 1]; // The step that should be darker
+    const minRequiredValue = nextStepValue + stepPadding;
+    
+    if (adjustedValues[i] < minRequiredValue) {
+      // This step is too dark, make it lighter
+      adjustedValues[i] = Math.min(100, minRequiredValue);
+    }
+  }
+  
+  // Cascade darker steps (indices primaryIndex+1 to end)
+  // Work forwards from primary to ensure each step is at least stepPadding darker than the previous
+  for (let i = primaryIndex + 1; i < adjustedValues.length; i++) {
+    const prevStepValue = adjustedValues[i - 1]; // The step that should be lighter
+    const maxAllowedValue = prevStepValue - stepPadding;
+    
+    if (adjustedValues[i] > maxAllowedValue) {
+      // This step is too light, make it darker
+      adjustedValues[i] = Math.max(0, maxAllowedValue);
+    }
+  }
+  
+  // Second pass: If we hit boundaries (0 or 100), we need to redistribute
+  // Check if we've pushed the lightest step beyond 100%
+  if (adjustedValues[0] > 100) {
+    // We need to compress the entire lighter range
+    const overshoot = adjustedValues[0] - 100;
+    const lighterSteps = primaryIndex;
+    
+    if (lighterSteps > 0) {
+      // Redistribute the overshoot across all lighter steps
+      const redistributionPerStep = overshoot / lighterSteps;
+      
+      for (let i = 0; i < primaryIndex; i++) {
+        adjustedValues[i] = Math.min(100, adjustedValues[i] - redistributionPerStep);
+      }
+      
+      // Re-enforce padding after redistribution
+      for (let i = primaryIndex - 1; i >= 0; i--) {
+        const nextStepValue = adjustedValues[i + 1];
+        const minRequiredValue = nextStepValue + stepPadding;
+        
+        if (adjustedValues[i] < minRequiredValue) {
+          // If we still can't maintain padding, reduce padding proportionally
+          const availableSpace = 100 - nextStepValue;
+          const requiredSpace = stepPadding;
+          
+          if (availableSpace < requiredSpace) {
+            // Scale down the padding requirement for this step
+            const scaledPadding = Math.max(0.1, availableSpace * 0.9); // Use 90% of available space
+            adjustedValues[i] = Math.min(100, nextStepValue + scaledPadding);
+          } else {
+            adjustedValues[i] = Math.min(100, minRequiredValue);
+          }
+        }
+      }
+    }
+  }
+  
+  // Check if we've pushed the darkest step below 0%
+  if (adjustedValues[adjustedValues.length - 1] < 0) {
+    // We need to compress the entire darker range
+    const undershoot = Math.abs(adjustedValues[adjustedValues.length - 1]);
+    const darkerSteps = adjustedValues.length - primaryIndex - 1;
+    
+    if (darkerSteps > 0) {
+      // Redistribute the undershoot across all darker steps
+      const redistributionPerStep = undershoot / darkerSteps;
+      
+      for (let i = primaryIndex + 1; i < adjustedValues.length; i++) {
+        adjustedValues[i] = Math.max(0, adjustedValues[i] + redistributionPerStep);
+      }
+      
+      // Re-enforce padding after redistribution
+      for (let i = primaryIndex + 1; i < adjustedValues.length; i++) {
+        const prevStepValue = adjustedValues[i - 1];
+        const maxAllowedValue = prevStepValue - stepPadding;
+        
+        if (adjustedValues[i] > maxAllowedValue) {
+          // If we still can't maintain padding, reduce padding proportionally
+          const availableSpace = prevStepValue;
+          const requiredSpace = stepPadding;
+          
+          if (availableSpace < requiredSpace) {
+            // Scale down the padding requirement for this step
+            const scaledPadding = Math.max(0.1, availableSpace * 0.9); // Use 90% of available space
+            adjustedValues[i] = Math.max(0, prevStepValue - scaledPadding);
+          } else {
+            adjustedValues[i] = Math.max(0, maxAllowedValue);
+          }
+        }
+      }
+    }
+  }
+  
+  // Final validation: Ensure primary step hasn't moved
+  adjustedValues[primaryIndex] = primaryValue;
   
   return adjustedValues;
 }
