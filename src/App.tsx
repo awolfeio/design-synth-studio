@@ -38,30 +38,35 @@ const ScrollToTop = () => {
   return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider delayDuration={300} skipDelayDuration={100}>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<RootLayout><Index /></RootLayout>} />
-            <Route path="/colors" element={<RootLayout><ColorSystem /></RootLayout>} />
-            <Route path="/typography" element={<RootLayout><Typography /></RootLayout>} />
-            <Route path="/spacing" element={<RootLayout><Spacing /></RootLayout>} />
-            <Route path="/border-radius" element={<RootLayout><BorderRadius /></RootLayout>} />
-            <Route path="/shadow" element={<RootLayout><Shadow /></RootLayout>} />
-            <Route path="/icons" element={<RootLayout><Icons /></RootLayout>} />
-            <Route path="/aliases" element={<RootLayout><AliasTokens /></RootLayout>} />
-            <Route path="/preview" element={<RootLayout><Preview /></RootLayout>} />
-            <Route path="*" element={<RootLayout><NotFound /></RootLayout>} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Set basename for GitHub Pages deployment
+  const basename = import.meta.env.PROD ? '/design-synth-studio' : '';
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter basename={basename}>
+          <ScrollToTop />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<RootLayout><Index /></RootLayout>} />
+              <Route path="/colors" element={<RootLayout><ColorSystem /></RootLayout>} />
+              <Route path="/typography" element={<RootLayout><Typography /></RootLayout>} />
+              <Route path="/spacing" element={<RootLayout><Spacing /></RootLayout>} />
+              <Route path="/border-radius" element={<RootLayout><BorderRadius /></RootLayout>} />
+              <Route path="/shadow" element={<RootLayout><Shadow /></RootLayout>} />
+              <Route path="/icons" element={<RootLayout><Icons /></RootLayout>} />
+              <Route path="/aliases" element={<RootLayout><AliasTokens /></RootLayout>} />
+              <Route path="/preview" element={<RootLayout><Preview /></RootLayout>} />
+              <Route path="*" element={<RootLayout><NotFound /></RootLayout>} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
