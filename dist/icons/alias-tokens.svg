@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+    <title>workflow</title>
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" stroke="#F7F7F7">
+        <path d="m8.25,4.75c1.1046,0,2,.8954,2,2v4.5c0,1.1046.8954,2,2,2h3.75"></path>
+        <circle cx="3.75" cy="4.75" r="2"></circle>
+        <polyline points="13.5 10.5 16.25 13.25 13.5 16"></polyline>
+    </g>
+</svg>
