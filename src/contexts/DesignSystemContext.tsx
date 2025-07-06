@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { DesignSystem, PresetTheme, ColorToken, ComponentVariant, ColorTokens, ColorHarmony, EasingCurve } from '@/types/designTokens';
+import { DesignSystem, PresetTheme, ColorToken, ComponentVariant, ColorTokens, ColorHarmony, EasingCurve, TypographyGroup, FontToken } from '@/types/designTokens';
 
 // Default color token
 const defaultColorToken: ColorToken = {
@@ -44,6 +44,7 @@ const defaultDesignSystem: DesignSystem = {
     destructive: { ...defaultColorToken, hue: 0, saturation: 80, steps: 4, primaryStepIndex: 1 }, // Red - fewer steps
   },
   fonts: {
+    // Legacy single tokens
     base: {
       family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       size: 16,
@@ -65,28 +66,129 @@ const defaultDesignSystem: DesignSystem = {
       weight: 400, 
       lineHeight: 1.6,
       letterSpacing: 0
+    },
+    
+    // New typography groups with multiple sizes
+    paragraph: {
+      baseSize: 16,
+      scale: 1.125,
+      steps: 3,
+      family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      weight: 400,
+      lineHeight: 1.6,
+      letterSpacing: 0,
+      scale_tokens: {
+        sm: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 14,
+          weight: 400,
+          lineHeight: 1.6,
+          letterSpacing: 0
+        },
+        md: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 16,
+          weight: 400,
+          lineHeight: 1.6,
+          letterSpacing: 0
+        },
+        lg: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 18,
+          weight: 400,
+          lineHeight: 1.6,
+          letterSpacing: 0
+        }
+      }
+    },
+    
+    span: {
+      baseSize: 14,
+      scale: 1.125,
+      steps: 3,
+      family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      weight: 400,
+      lineHeight: 1.5,
+      letterSpacing: 0,
+      scale_tokens: {
+        sm: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 12,
+          weight: 400,
+          lineHeight: 1.5,
+          letterSpacing: 0
+        },
+        md: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 14,
+          weight: 400,
+          lineHeight: 1.5,
+          letterSpacing: 0
+        },
+        lg: {
+          family: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          size: 16,
+          weight: 400,
+          lineHeight: 1.5,
+          letterSpacing: 0
+        }
+      }
     }
   },
-  spacing: [0, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80],
+  spacing: {
+    token: {
+      baseSize: 16,
+      scale: 1.5,
+      steps: 10,
+      unit: 'px'
+    },
+    scale: {
+      'xs': 4,
+      'sm': 8,
+      'md': 16,
+      'lg': 24,
+      'xl': 32,
+      '2xl': 48,
+      '3xl': 64,
+      '4xl': 80,
+      '5xl': 96,
+      '6xl': 128
+    }
+  },
   radius: {
-    small: 4,
-    medium: 8,
-    large: 16,
-    full: 9999
+    token: {
+      baseSize: 8,
+      scale: 1.5,
+      steps: 6,
+      unit: 'px'
+    },
+    scale: {
+      'xs': 2,
+      'sm': 4,
+      'md': 8,
+      'lg': 12,
+      'xl': 16,
+      '2xl': 24
+    }
   },
   isDark: false,
-  iconLibrary: 'lucide'
+  iconLibrary: 'lucide',
+  accentColorEnabled: true
 };
 
 // Action types
 type ActionType =
   | { type: 'UPDATE_COLOR'; tokenName: string; property: keyof ColorToken; value: number | string | number[] }
+  | { type: 'UPDATE_COLOR_HARMONY'; tokenName: string; harmonySource: string | undefined; harmonyType: ColorHarmony }
   | { type: 'UPDATE_COLOR_COMPRESSION'; tokenName: string; compressionType: 'light' | 'dark'; compressionValue: number }
   | { type: 'UPDATE_FONT'; fontName: string; property: string; value: string | number }
-  | { type: 'UPDATE_SPACING'; index: number; value: number }
-  | { type: 'UPDATE_SPACING_SCALE'; scale: number[] }
-  | { type: 'UPDATE_RADIUS'; radiusName: string; value: number }
+  | { type: 'UPDATE_TYPOGRAPHY_GROUP'; groupName: string; property: string; value: string | number }
+  | { type: 'UPDATE_SPACING_TOKEN'; property: string; value: number | string }
+  | { type: 'UPDATE_SPACING_SCALE'; stepName: string; value: number }
+  | { type: 'UPDATE_RADIUS_TOKEN'; property: string; value: number | string }
+  | { type: 'UPDATE_RADIUS_SCALE'; stepName: string; value: number }
   | { type: 'TOGGLE_THEME' }
+  | { type: 'TOGGLE_ACCENT_COLOR' }
   | { type: 'LOAD_PRESET'; preset: PresetTheme }
   | { type: 'RESET' }
   | { type: 'SET_SYSTEM'; system: DesignSystem }
@@ -98,6 +200,7 @@ type ActionType =
 type DesignSystemContextType = {
   system: DesignSystem;
   dispatch: React.Dispatch<ActionType>;
+  updateColorHarmony: (tokenName: string, harmonySource: string | undefined, harmonyType: ColorHarmony) => void;
   getCSS: () => string;
   getTailwindConfig: () => Record<string, unknown>;
   activatePreset: (preset: PresetTheme) => void;
@@ -114,6 +217,82 @@ const DesignSystemContext = createContext<DesignSystemContextType | undefined>(u
 // Reducer function
 function designSystemReducer(state: DesignSystem, action: ActionType): DesignSystem {
   switch (action.type) {
+    case 'UPDATE_COLOR_HARMONY': {
+      const newColors = { ...state.colors };
+      const targetToken = { ...newColors[action.tokenName] };
+      
+      // Set both harmony properties at once
+      targetToken.harmonySource = action.harmonySource;
+      targetToken.harmonyType = action.harmonyType;
+      
+      // If clearing harmony
+      if (action.harmonyType === 'none') {
+        targetToken.harmonySource = undefined;
+      }
+      
+      // If setting up harmony and both source and type are defined, calculate the harmony
+      if (action.harmonySource === 'primary' && action.harmonyType && action.harmonyType !== 'none') {
+        const primaryColor = newColors.primary;
+        let newHue = primaryColor.hue;
+        
+        // Calculate the harmony hue based on the harmony type
+        switch (action.harmonyType) {
+          case 'complementary':
+            newHue = (primaryColor.hue + 180) % 360;
+            break;
+          case 'triadic':
+            // For secondary, use +120, for accent use +240
+            newHue = action.tokenName === 'secondary' 
+              ? (primaryColor.hue + 120) % 360 
+              : (primaryColor.hue + 240) % 360;
+            break;
+          case 'analogous':
+            // For secondary, use +30, for accent use -30
+            newHue = action.tokenName === 'secondary'
+              ? (primaryColor.hue + 30) % 360
+              : (primaryColor.hue - 30 + 360) % 360;
+            break;
+          case 'split-complementary':
+            // For secondary, use +150, for accent use +210
+            newHue = action.tokenName === 'secondary'
+              ? (primaryColor.hue + 150) % 360
+              : (primaryColor.hue + 210) % 360;
+            break;
+        }
+        
+        // Apply the calculated hue
+        targetToken.hue = newHue;
+        
+        // Apply initial saturation and lightness inheritance for certain harmony types
+        if (action.harmonyType === 'complementary') {
+          // Complementary colors inherit saturation and lightness for visual consistency
+          targetToken.saturation = primaryColor.saturation;
+          targetToken.lightness = primaryColor.lightness;
+        } else if (action.harmonyType === 'analogous') {
+          // Analogous colors work well with similar saturation and lightness
+          targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
+          const variation = action.tokenName === 'secondary' ? 0.9 : 1.1;
+          targetToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+        } else if (action.harmonyType === 'triadic') {
+          // Triadic colors can have slightly different saturation
+          targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
+        } else if (action.harmonyType === 'split-complementary') {
+          // Split-complementary colors can inherit some properties
+          targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.95));
+          const variation = action.tokenName === 'secondary' ? 0.95 : 1.05;
+          targetToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
+        }
+      }
+      
+      // Update the token in the colors object
+      newColors[action.tokenName] = targetToken;
+      
+      return {
+        ...state,
+        colors: newColors
+      };
+    }
+    
     case 'UPDATE_COLOR': {
       const newColors = { ...state.colors };
       const targetToken = { ...newColors[action.tokenName] };
@@ -148,13 +327,24 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
             targetToken.harmonyType = action.value as ColorHarmony | undefined;
           }
           
+          // Check if we need to clear harmony when setting to 'none'
+          if (action.property === 'harmonyType' && targetToken.harmonyType === 'none') {
+            targetToken.harmonySource = undefined;
+          }
+          
           // If harmony is being set up and both source and type are now defined, calculate the harmony
-          if (targetToken.harmonySource === 'primary' && targetToken.harmonyType && targetToken.harmonyType !== 'none') {
+          // This check happens after setting either property to handle the sequence properly
+          // Also check if we're setting harmonyType and harmonySource is already 'primary'
+          if ((targetToken.harmonySource === 'primary' && targetToken.harmonyType && targetToken.harmonyType !== 'none') ||
+              (action.property === 'harmonyType' && action.value !== 'none' && targetToken.harmonySource === 'primary')) {
             const primaryColor = newColors.primary;
             let newHue = primaryColor.hue;
             
+            // Use the harmony type from the action if we're setting it, otherwise use the token's value
+            const harmonyType = action.property === 'harmonyType' ? action.value as ColorHarmony : targetToken.harmonyType;
+            
             // Calculate the harmony hue based on the harmony type
-            switch (targetToken.harmonyType) {
+            switch (harmonyType) {
               case 'complementary':
                 newHue = (primaryColor.hue + 180) % 360;
                 break;
@@ -182,19 +372,19 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
             targetToken.hue = newHue;
             
             // Apply initial saturation and lightness inheritance for certain harmony types
-            if (targetToken.harmonyType === 'complementary') {
+            if (harmonyType === 'complementary') {
               // Complementary colors inherit saturation and lightness for visual consistency
               targetToken.saturation = primaryColor.saturation;
               targetToken.lightness = primaryColor.lightness;
-            } else if (targetToken.harmonyType === 'analogous') {
+            } else if (harmonyType === 'analogous') {
               // Analogous colors work well with similar saturation and lightness
               targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.9));
               const variation = action.tokenName === 'secondary' ? 0.9 : 1.1;
               targetToken.lightness = Math.max(0, Math.min(100, primaryColor.lightness * variation));
-            } else if (targetToken.harmonyType === 'triadic') {
+            } else if (harmonyType === 'triadic') {
               // Triadic colors can have slightly different saturation
               targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.85));
-            } else if (targetToken.harmonyType === 'split-complementary') {
+            } else if (harmonyType === 'split-complementary') {
               // Split-complementary colors can inherit some properties
               targetToken.saturation = Math.max(0, Math.min(100, primaryColor.saturation * 0.95));
               const variation = action.tokenName === 'secondary' ? 0.95 : 1.05;
@@ -419,27 +609,103 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
         }
       };
     
-    case 'UPDATE_SPACING': {
-      const newSpacing = [...state.spacing];
-      newSpacing[action.index] = action.value;
+    case 'UPDATE_TYPOGRAPHY_GROUP': {
+      const currentGroup = state.fonts[action.groupName] as TypographyGroup;
+      if (!currentGroup || !('scale_tokens' in currentGroup)) {
+        return state;
+      }
+      
+      // Update the typography group property
+      const updatedGroup = {
+        ...currentGroup,
+        [action.property]: action.value
+      };
+      
+      // Regenerate scale tokens if base properties changed
+      if (['baseSize', 'scale', 'family', 'weight', 'lineHeight', 'letterSpacing'].includes(action.property)) {
+        const generateScaleTokens = (group: TypographyGroup) => {
+          const tokens: { [key: string]: FontToken } = {};
+          const sizes = ['sm', 'md', 'lg'];
+          
+          sizes.forEach((size, index) => {
+            let fontSize: number;
+            if (size === 'md') {
+              fontSize = group.baseSize;
+            } else if (size === 'sm') {
+              fontSize = Math.round(group.baseSize / group.scale);
+            } else { // lg
+              fontSize = Math.round(group.baseSize * group.scale);
+            }
+            
+            tokens[size] = {
+              family: group.family,
+              size: fontSize,
+              weight: group.weight,
+              lineHeight: group.lineHeight,
+              letterSpacing: group.letterSpacing
+            };
+          });
+          
+          return tokens;
+        };
+        
+        updatedGroup.scale_tokens = generateScaleTokens(updatedGroup);
+      }
+      
       return {
         ...state,
-        spacing: newSpacing
+        fonts: {
+          ...state.fonts,
+          [action.groupName]: updatedGroup
+        }
       };
     }
+    
+    case 'UPDATE_SPACING_TOKEN':
+      return {
+        ...state,
+        spacing: {
+          ...state.spacing,
+          token: {
+            ...state.spacing.token,
+            [action.property]: action.value
+          }
+        }
+      };
     
     case 'UPDATE_SPACING_SCALE':
       return {
         ...state,
-        spacing: action.scale
+        spacing: {
+          ...state.spacing,
+          scale: {
+            ...state.spacing.scale,
+            [action.stepName]: action.value
+          }
+        }
       };
     
-    case 'UPDATE_RADIUS':
+    case 'UPDATE_RADIUS_TOKEN':
       return {
         ...state,
         radius: {
           ...state.radius,
-          [action.radiusName]: action.value
+          token: {
+            ...state.radius.token,
+            [action.property]: action.value
+          }
+        }
+      };
+    
+    case 'UPDATE_RADIUS_SCALE':
+      return {
+        ...state,
+        radius: {
+          ...state.radius,
+          scale: {
+            ...state.radius.scale,
+            [action.stepName]: action.value
+          }
         }
       };
     
@@ -447,6 +713,12 @@ function designSystemReducer(state: DesignSystem, action: ActionType): DesignSys
       return {
         ...state,
         isDark: !state.isDark
+      };
+    
+    case 'TOGGLE_ACCENT_COLOR':
+      return {
+        ...state,
+        accentColorEnabled: !state.accentColorEnabled
       };
     
     case 'LOAD_PRESET':
@@ -904,11 +1176,22 @@ export const DesignSystemProvider: React.FC<{ children: React.ReactNode }> = ({ 
     dispatch({ type: 'RESET' });
   };
 
+  // Update color harmony
+  const updateColorHarmony = (tokenName: string, harmonySource: string | undefined, harmonyType: ColorHarmony) => {
+    dispatch({
+      type: 'UPDATE_COLOR_HARMONY',
+      tokenName,
+      harmonySource,
+      harmonyType
+    });
+  };
+
   return (
     <DesignSystemContext.Provider 
       value={{ 
         system, 
         dispatch, 
+        updateColorHarmony,
         getCSS, 
         getTailwindConfig, 
         activatePreset,

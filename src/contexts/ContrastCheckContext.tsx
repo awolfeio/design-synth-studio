@@ -9,12 +9,17 @@ interface ContrastCheckContextType {
   clearComparisonColor: (tokenName: string) => void;
   // Check if a token has a custom comparison color
   hasCustomComparison: (tokenName: string) => boolean;
+  // ΔE check enabled state
+  deltaECheckEnabled: boolean;
+  // Toggle ΔE check
+  setDeltaECheckEnabled: (enabled: boolean) => void;
 }
 
 const ContrastCheckContext = createContext<ContrastCheckContextType | undefined>(undefined);
 
 export const ContrastCheckProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [comparisonColors, setComparisonColors] = useState<Record<string, string>>({});
+  const [deltaECheckEnabled, setDeltaECheckEnabled] = useState(false);
 
   const setComparisonColor = (tokenName: string, comparisonColor: string) => {
     setComparisonColors(prev => ({
@@ -41,7 +46,9 @@ export const ContrastCheckProvider: React.FC<{ children: React.ReactNode }> = ({
         comparisonColors, 
         setComparisonColor, 
         clearComparisonColor,
-        hasCustomComparison 
+        hasCustomComparison,
+        deltaECheckEnabled,
+        setDeltaECheckEnabled
       }}
     >
       {children}

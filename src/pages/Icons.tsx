@@ -35,7 +35,14 @@ const Icons: React.FC = () => {
           onValueChange={handleLibraryChange}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
         >
-          <div className="flex flex-col p-6 rounded-lg border hover:bg-accent/5 transition-colors h-full">
+          <div 
+            className={`flex flex-col p-6 rounded-lg border-2 cursor-pointer transition-all h-full ${
+              currentLibrary === 'lucide' 
+                ? 'border-primary bg-primary/5 shadow-sm' 
+                : 'border-border hover:border-primary/50 hover:bg-accent/5'
+            }`}
+            onClick={() => handleLibraryChange('lucide')}
+          >
             <div className="flex items-center space-x-3 mb-3">
               <RadioGroupItem value="lucide" id="lucide" />
               <Label 
@@ -53,7 +60,14 @@ const Icons: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col p-6 rounded-lg border hover:bg-accent/5 transition-colors h-full">
+          <div 
+            className={`flex flex-col p-6 rounded-lg border-2 cursor-pointer transition-all h-full ${
+              currentLibrary === 'heroicons' 
+                ? 'border-primary bg-primary/5 shadow-sm' 
+                : 'border-border hover:border-primary/50 hover:bg-accent/5'
+            }`}
+            onClick={() => handleLibraryChange('heroicons')}
+          >
             <div className="flex items-center space-x-3 mb-3">
               <RadioGroupItem value="heroicons" id="heroicons" />
               <Label 
@@ -71,7 +85,14 @@ const Icons: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col p-6 rounded-lg border hover:bg-accent/5 transition-colors h-full">
+          <div 
+            className={`flex flex-col p-6 rounded-lg border-2 cursor-pointer transition-all h-full ${
+              currentLibrary === 'tabler' 
+                ? 'border-primary bg-primary/5 shadow-sm' 
+                : 'border-border hover:border-primary/50 hover:bg-accent/5'
+            }`}
+            onClick={() => handleLibraryChange('tabler')}
+          >
             <div className="flex items-center space-x-3 mb-3">
               <RadioGroupItem value="tabler" id="tabler" />
               <Label 
@@ -89,7 +110,14 @@ const Icons: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col p-6 rounded-lg border hover:bg-accent/5 transition-colors h-full">
+          <div 
+            className={`flex flex-col p-6 rounded-lg border-2 cursor-pointer transition-all h-full ${
+              currentLibrary === 'nucleo' 
+                ? 'border-primary bg-primary/5 shadow-sm' 
+                : 'border-border hover:border-primary/50 hover:bg-accent/5'
+            }`}
+            onClick={() => handleLibraryChange('nucleo')}
+          >
             <div className="flex items-center space-x-3 mb-3">
               <RadioGroupItem value="nucleo" id="nucleo" />
               <Label 
@@ -108,7 +136,10 @@ const Icons: React.FC = () => {
             <div className="h-8">
               {currentLibrary === 'nucleo' && (
                 <Button 
-                  onClick={handleGetNucleo}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent tile selection when clicking the button
+                    handleGetNucleo();
+                  }}
                   size="sm"
                   className="flex items-center gap-2 w-full h-full"
                 >

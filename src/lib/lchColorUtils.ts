@@ -85,7 +85,7 @@ export function generateLchColorScale(
   const baseLch = hslToLch(baseHue, baseSaturation, baseLightness, baseAlpha);
   
   // Define the lightness range in LCH (0-100)
-  const minL = tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 5;
+  const minL = tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 12;
   const maxL = 95;
   
   // Generate lightness values using the enhanced easing logic with offset support

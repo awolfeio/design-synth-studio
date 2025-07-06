@@ -3,6 +3,7 @@ import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Switch } from '../ui/switch';
 import { HexColorPicker } from 'react-colorful';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { ColorToken, ColorHarmony } from '@/types/designTokens';
@@ -49,6 +50,7 @@ const ControlsIcon: React.FC<{ className?: string }> = ({ className = "h-4 w-4" 
     strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    style={{ transform: 'scale(1.2)' }}
   >
     <circle cx="9" cy="9" r="7.25" />
     <line x1="9.75" y1="6.75" x2="12.75" y2="6.75" />
@@ -76,6 +78,9 @@ interface ColorControlSidebarProps {
   updateColorProperty: (property: keyof ColorToken, value: number | string) => void;
   handleInputChange: (property: keyof ColorToken, e: React.ChangeEvent<HTMLInputElement>) => void;
   getStepValue: (index: number) => number;
+  showEnableSwitch?: boolean;
+  isEnabled?: boolean;
+  onToggleEnabled?: (enabled: boolean) => void;
 }
 
 export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
@@ -93,9 +98,12 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
   handleHexInputKeyPress,
   updateColorProperty,
   handleInputChange,
-  getStepValue
+  getStepValue,
+  showEnableSwitch = false,
+  isEnabled = true,
+  onToggleEnabled
 }) => {
-  const { system, dispatch } = useDesignSystem();
+  const { system, dispatch, updateColorHarmony } = useDesignSystem();
   const { setActiveColorControl } = useColorControl();
   const color = system.colors[tokenName as keyof typeof system.colors] as ColorToken;
 
@@ -104,14 +112,11 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
   // Handle harmony changes
   const handleHarmonyChange = (harmonyType: ColorHarmony) => {
     if (harmonyType === 'none') {
-      // Remove harmony - set to 'none' instead of undefined
-      updateColorProperty('harmonySource', undefined);
-      updateColorProperty('harmonyType', 'none');
+      // Remove harmony
+      updateColorHarmony(tokenName, undefined, 'none');
     } else {
       // Apply harmony from primary color
-      updateColorProperty('harmonySource', 'primary');
-      updateColorProperty('harmonyType', harmonyType);
-      // The context will handle calculating and applying the harmony colors
+      updateColorHarmony(tokenName, 'primary', harmonyType);
     }
   };
 
@@ -137,7 +142,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${!isEnabled ? 'opacity-50' : ''}`}>
       <div className="mt-4">
         <div className="flex items-center gap-2 mb-3">
           <Button
@@ -151,6 +156,18 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
           <h3 className="text-sm font-medium">{label} Controls</h3>
         </div>
       </div>
+
+      {/* Enable/Disable Switch - show only for accent color */}
+      {showEnableSwitch && onToggleEnabled && (
+        <div className="flex items-center justify-between opacity-100">
+          <Label className="text-xs">Enable {label}</Label>
+          <Switch 
+            id={`${tokenName}-enabled-sidebar`}
+            checked={isEnabled}
+            onCheckedChange={onToggleEnabled}
+          />
+        </div>
+      )}
 
       {/* Color Interpolation Mode - show only for colors with steps */}
       {showSteps && tokenName === 'primary' && (
@@ -213,29 +230,31 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <div 
-          className="w-8 h-8 rounded-full border border-border cursor-pointer"
-          style={{ backgroundColor: colorHex }}
-          onClick={() => setIsPickerOpen(!isPickerOpen)}
-        />
+      {isEnabled && (
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">HEX</Label>
-          <Input
-            type="text"
-            value={colorHex}
-            onChange={handleHexInputChange}
-            onBlur={handleHexInputSubmit}
-            onKeyPress={handleHexInputKeyPress}
-            placeholder="#000000"
-            className="w-20 h-8 text-xs font-mono"
-            maxLength={7}
+          <div 
+            className="w-8 h-8 rounded-full border border-border cursor-pointer"
+            style={{ backgroundColor: colorHex }}
+            onClick={() => setIsPickerOpen(!isPickerOpen)}
           />
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">HEX</Label>
+            <Input
+              type="text"
+              value={colorHex}
+              onChange={handleHexInputChange}
+              onBlur={handleHexInputSubmit}
+              onKeyPress={handleHexInputKeyPress}
+              placeholder="#000000"
+              className="w-24 h-8 text-xs font-mono"
+              maxLength={7}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Primary Step Position selector - for all colors with steps */}
-      {showSteps && (
+      {showSteps && isEnabled && (
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">Primary Step</Label>
           <Select
@@ -256,7 +275,7 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
         </div>
       )}
 
-      {isPickerOpen && (
+      {isPickerOpen && isEnabled && (
         <div className="mb-4 relative">
           <div className="z-10">
             <HexColorPicker color={colorHex} onChange={handleHexChange} />
@@ -264,108 +283,116 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
         </div>
       )}
       
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <Label className="text-xs">Hue</Label>
-          <span className="text-xs text-muted-foreground">{Math.round(color.hue)}°</span>
+      {isEnabled && (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <Label className="text-xs">Hue</Label>
+            <span className="text-xs text-muted-foreground">{Math.round(color.hue)}°</span>
+          </div>
+          <div className="flex gap-3">
+            <Slider 
+              min={0} 
+              max={360} 
+              step={1}
+              value={[color.hue]} 
+              onValueChange={([value]) => updateColorProperty('hue', value)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              min={0}
+              max={360}
+              value={Math.round(color.hue)}
+              onChange={(e) => handleInputChange('hue', e)}
+              className="w-16 h-8 text-xs"
+            />
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Slider 
-            min={0} 
-            max={360} 
-            step={1}
-            value={[color.hue]} 
-            onValueChange={([value]) => updateColorProperty('hue', value)}
-            className="flex-1"
-          />
-          <Input
-            type="number"
-            min={0}
-            max={360}
-            value={Math.round(color.hue)}
-            onChange={(e) => handleInputChange('hue', e)}
-            className="w-16 h-8 text-xs"
-          />
-        </div>
-      </div>
+      )}
       
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <Label className="text-xs">Saturation</Label>
-          <span className="text-xs text-muted-foreground">{Math.round(color.saturation)}%</span>
+      {isEnabled && (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <Label className="text-xs">Saturation</Label>
+            <span className="text-xs text-muted-foreground">{Math.round(color.saturation)}%</span>
+          </div>
+          <div className="flex gap-3">
+            <Slider 
+              min={0} 
+              max={tokenName === 'neutrals' ? 15 : 100} 
+              step={1}
+              value={[color.saturation]} 
+              onValueChange={([value]) => updateColorProperty('saturation', value)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              min={0}
+              max={tokenName === 'neutrals' ? 15 : 100}
+              value={Math.round(color.saturation)}
+              onChange={(e) => handleInputChange('saturation', e)}
+              className="w-16 h-8 text-xs"
+            />
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Slider 
-            min={0} 
-            max={tokenName === 'neutrals' ? 15 : 100} 
-            step={1}
-            value={[color.saturation]} 
-            onValueChange={([value]) => updateColorProperty('saturation', value)}
-            className="flex-1"
-          />
-          <Input
-            type="number"
-            min={0}
-            max={tokenName === 'neutrals' ? 15 : 100}
-            value={Math.round(color.saturation)}
-            onChange={(e) => handleInputChange('saturation', e)}
-            className="w-16 h-8 text-xs"
-          />
-        </div>
-      </div>
+      )}
       
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <Label className="text-xs">Lightness</Label>
-          <span className="text-xs text-muted-foreground">{Math.round(color.lightness)}%</span>
+      {isEnabled && (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <Label className="text-xs">Lightness</Label>
+            <span className="text-xs text-muted-foreground">{Math.round(color.lightness)}%</span>
+          </div>
+          <div className="flex gap-3">
+            <Slider 
+              min={0} 
+              max={100} 
+              step={1}
+              value={[color.lightness]} 
+              onValueChange={([value]) => updateColorProperty('lightness', value)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={Math.round(color.lightness)}
+              onChange={(e) => handleInputChange('lightness', e)}
+              className="w-16 h-8 text-xs"
+            />
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Slider 
-            min={0} 
-            max={100} 
-            step={1}
-            value={[color.lightness]} 
-            onValueChange={([value]) => updateColorProperty('lightness', value)}
-            className="flex-1"
-          />
-          <Input
-            type="number"
-            min={0}
-            max={100}
-            value={Math.round(color.lightness)}
-            onChange={(e) => handleInputChange('lightness', e)}
-            className="w-16 h-8 text-xs"
-          />
-        </div>
-      </div>
+      )}
       
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <Label className="text-xs">Alpha</Label>
-          <span className="text-xs text-muted-foreground">{color.alpha.toFixed(2)}</span>
+      {isEnabled && (
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <Label className="text-xs">Alpha</Label>
+            <span className="text-xs text-muted-foreground">{color.alpha.toFixed(2)}</span>
+          </div>
+          <div className="flex gap-3">
+            <Slider 
+              min={0} 
+              max={1} 
+              step={0.01}
+              value={[color.alpha]} 
+              onValueChange={([value]) => updateColorProperty('alpha', value)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              value={color.alpha}
+              onChange={(e) => handleInputChange('alpha', e)}
+              className="w-16 h-8 text-xs"
+            />
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Slider 
-            min={0} 
-            max={1} 
-            step={0.01}
-            value={[color.alpha]} 
-            onValueChange={([value]) => updateColorProperty('alpha', value)}
-            className="flex-1"
-          />
-          <Input
-            type="number"
-            min={0}
-            max={1}
-            step={0.01}
-            value={color.alpha}
-            onChange={(e) => handleInputChange('alpha', e)}
-            className="w-16 h-8 text-xs"
-          />
-        </div>
-      </div>
+      )}
       
-      {showSteps && (
+      {showSteps && isEnabled && (
         <>
           <div>
             <div className="flex justify-between items-center mb-1">
@@ -463,9 +490,9 @@ export const ColorControlSidebar: React.FC<ColorControlSidebarProps> = ({
                     </div>
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>Expanded</span>
-                    <span>Linear</span>
                     <span>Compressed</span>
+                    <span>Linear</span>
+                    <span>Expanded</span>
                   </div>
                 </div>
                 

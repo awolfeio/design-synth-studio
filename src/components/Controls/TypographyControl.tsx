@@ -15,7 +15,7 @@ interface TypographyControlProps {
 
 export const TypographyControl: React.FC<TypographyControlProps> = ({ tokenName, label }) => {
   const { system, dispatch } = useDesignSystem();
-  const { setActiveTypographyControl, setControlProps } = useTypographyControl();
+  const { activeTypographyControl, setActiveTypographyControl, setControlProps } = useTypographyControl();
   const font = system.fonts[tokenName];
 
   const updateFontProperty = (property: keyof FontToken, value: string | number) => {
@@ -147,8 +147,16 @@ export const TypographyControl: React.FC<TypographyControlProps> = ({ tokenName,
     }
   };
 
+  const isActive = activeTypographyControl === tokenName;
+
   return (
-    <div className="mb-8 w-full cursor-pointer rounded-xl p-4 transition-colors hover:bg-gray-50/80 active:bg-gray-100/80" onClick={activateTypographyControl}>
+    <div 
+      className={`mb-8 w-full cursor-pointer rounded-xl p-4 transition-colors hover:bg-gray-50/80 active:bg-gray-100/80 ${
+        isActive ? 'outline outline-2 outline-black outline-offset-2' : ''
+      }`} 
+      data-typography-control={tokenName} 
+      onClick={activateTypographyControl}
+    >
       <div className="flex items-center mb-4">
         <Label className="text-lg font-medium">{label}</Label>
       </div>

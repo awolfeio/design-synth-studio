@@ -74,9 +74,9 @@ export const StepDistributionGraph: React.FC<StepDistributionGraphProps> = ({
         >
           <defs>
             <style>{`
-              .graph-svg-text { font-size: 11px; }
-              .graph-svg-text-small { font-size: 10px; }
-              .graph-svg-text-tiny { font-size: 9px; }
+              .graph-svg-text { font-size: 11px; font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+              .graph-svg-text-small { font-size: 10px; font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+              .graph-svg-text-tiny { font-size: 9px; font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
             `}</style>
           </defs>
           
@@ -141,7 +141,7 @@ export const StepDistributionGraph: React.FC<StepDistributionGraphProps> = ({
             y={viewBoxHeight / 2} 
             textAnchor="middle" 
             className="fill-muted-foreground graph-svg-text-small" 
-            transform={`rotate(-90 12 ${viewBoxHeight / 2})`}
+            transform="rotate(-90 15 69) scale(0.8)"
             style={textStyle}
           >
             Lightness %
@@ -153,7 +153,7 @@ export const StepDistributionGraph: React.FC<StepDistributionGraphProps> = ({
             y={viewBoxHeight - 5} 
             textAnchor="middle" 
             className="fill-muted-foreground graph-svg-text" 
-            style={textStyle}
+            style={{ ...textStyle, transform: 'scale(0.8)', transformOrigin: 'bottom center' }}
           >
             Step Index
           </text>
@@ -199,7 +199,7 @@ export const StepDistributionGraph: React.FC<StepDistributionGraphProps> = ({
                 y={padding.top - 5}
                 textAnchor="middle"
                 className="font-medium graph-svg-text-small"
-                style={{ ...textStyle, fill: primaryColor }}
+                style={{ ...textStyle, fill: primaryColor, transform: 'scale(0.8)', transformOrigin: 'top center' }}
               >
                 Primary
               </text>
@@ -238,7 +238,7 @@ export const StepDistributionGraph: React.FC<StepDistributionGraphProps> = ({
         </svg>
       </div>
       
-      <div className="mt-2 text-xs text-muted-foreground text-center select-none">
+      <div className="mt-2 text-xs text-muted-foreground text-center select-none font-mono">
         Lightness Distribution Across Steps
       </div>
     </div>

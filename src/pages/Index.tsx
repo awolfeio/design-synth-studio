@@ -3,37 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Type } from 'lucide-react';
 
-// Custom icon components using our custom SVGs
+// Custom icon components using exact SVG codes from /public/icons/ - 24x24
 const ColorSystemIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
-  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 2C10.5523 2 11 2.44772 11 3V4.1C11 4.59695 11.4477 5 12 5C12.5523 5 13 4.55228 13 4V3C13 1.34315 11.6569 0 10 0C8.34315 0 7 1.34315 7 3V4C7 4.55228 7.44772 5 8 5C8.55228 5 9 4.59695 9 4.1V3C9 2.44772 9.44772 2 10 2Z" fill="currentColor"/>
-    <path d="M3 10C3 9.44772 3.44772 9 4 9H4.9C5.40305 9 5.5 8.55228 5.5 8C5.5 7.44772 5.05228 7 4.5 7H3.5C1.84315 7 0.5 8.34315 0.5 10C0.5 11.6569 1.84315 13 3.5 13H4.5C5.05228 13 5.5 12.5523 5.5 12C5.5 11.4477 5.40305 11 4.9 11H4C3.44772 11 3 10.5523 3 10Z" fill="currentColor"/>
-    <circle cx="10" cy="10" r="3" fill="currentColor"/>
-    <path d="M15 6C15.5523 6 16 6.44772 16 7V8C16 8.55228 15.5523 9 15 9C14.4477 9 14 8.55228 14 8V7C14 6.44772 14.4477 6 15 6Z" fill="currentColor"/>
-    <path d="M5 14C5.55228 14 6 14.4477 6 15V16C6 16.5523 5.55228 17 5 17C4.44772 17 4 16.5523 4 16V15C4 14.4477 4.44772 14 5 14Z" fill="currentColor"/>
+  <svg className={className} width="24" height="24" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <title>color-palette</title>
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" stroke="currentColor">
+      <path d="M7.25 3.75C7.25 3.198 6.802 2.75 6.25 2.75H3.75C3.198 2.75 2.75 3.198 2.75 3.75V13"></path>
+      <path d="M13.132 8.04999C13.523 7.65899 13.523 7.02599 13.132 6.63599L11.364 4.86802C10.973 4.47702 10.34 4.47702 9.95001 4.86802L3.409 11.409"></path>
+      <path d="M2.75 13C2.75 11.758 3.758 10.75 5 10.75H14.25C14.802 10.75 15.25 11.198 15.25 11.75V14.25C15.25 14.802 14.802 15.25 14.25 15.25H5C3.758 15.25 2.75 14.242 2.75 13Z"></path>
+      <path d="M7.25 10.75V15.25"></path>
+      <path d="M11.25 10.75V15.25"></path>
+    </g>
   </svg>
 );
 
 const SpacingIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
-  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <line x1="3" y1="4" x2="3" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="17" y1="4" x2="17" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)" markerStart="url(#arrowhead)"/>
-    <defs>
-      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-        <polygon points="0 0, 10 3.5, 0 7" fill="currentColor"/>
-      </marker>
-    </defs>
+  <svg className={className} width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <title>spacing</title>
+    <g fill="none" strokeLinecap="round" strokeWidth="1.5" stroke="currentColor" strokeLinejoin="round">
+      <path d="M3 4v16"></path>
+      <path d="M21 4v16"></path>
+      <path d="M16 14l2-2 -2-2"></path>
+      <path d="M8 14l-2-2 2-2"></path>
+      <path d="M6 12h12"></path>
+    </g>
   </svg>
 );
 
 const BorderRadiusIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
-  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 4H16C17.1046 4 18 4.89543 18 6V14C18 15.1046 17.1046 16 16 16H4C2.89543 16 2 15.1046 2 14V6C2 4.89543 2.89543 4 4 4Z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <path d="M2 6C2 4.89543 2.89543 4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M18 6C18 4.89543 17.1046 4 16 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M18 14C18 15.1046 17.1046 16 16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    <path d="M2 14C2 15.1046 2.89543 16 4 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  <svg className={className} width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <title>border-radius</title>
+    <g fill="currentColor">
+      <path fillRule="evenodd" clipRule="evenodd" d="M5 4C4.44772 4 4 4.44772 4 5V9H2V5C2 3.34315 3.34315 2 5 2H9V4H5Z"></path>
+      <path fillRule="evenodd" clipRule="evenodd" d="M15 2H19C20.6569 2 22 3.34315 22 5V9H20V5C20 4.44772 19.5523 4 19 4H15V2Z"></path>
+      <path fillRule="evenodd" clipRule="evenodd" d="M22 15V19C22 20.6569 20.6569 22 19 22H15V20H19C19.5523 20 20 19.5523 20 19V15H22Z"></path>
+      <path fillRule="evenodd" clipRule="evenodd" d="M4 15V19C4 19.5523 4.44772 20 5 20H9V22H5C3.34315 22 2 20.6569 2 19V15H4Z"></path>
+    </g>
   </svg>
 );
 
@@ -45,19 +50,28 @@ const ShadowIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" })
 );
 
 const IconsIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
-  <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <rect x="12" y="2" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <rect x="2" y="12" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <rect x="12" y="12" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-    <path d="M15 5L16 6L15 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="5" cy="5" r="1" fill="currentColor"/>
-    <path d="M5 15L6 14L7 15L6 16L5 15Z" fill="currentColor"/>
-    <circle cx="15" cy="15" r="1.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+  <svg className={className} width="24" height="24" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <title>image-sparkle</title>
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" stroke="currentColor">
+      <path d="M4.445,15.227l5.64-5.641c.781-.781,2.047-.781,2.828,0l2.336,2.336"></path>
+      <rect x="2.75" y="2.75" width="12.5" height="12.5" rx="2" ry="2"></rect>
+      <path d="M9.158,6.508l-1.263-.421-.421-1.263c-.137-.408-.812-.408-.949,0l-.421,1.263-1.263,.421c-.204,.068-.342,.259-.342,.474s.138,.406,.342,.474l1.263,.421,.421,1.263c.068,.204,.26,.342,.475,.342s.406-.138,.475-.342l.421-1.263,1.263-.421c.204-.068,.342-.259,.342-.474s-.138-.406-.342-.474Z" fill="currentColor" stroke="none"></path>
+    </g>
   </svg>
 );
 
-const Index = () => {
+const AliasTokensIcon: React.FC<{ className?: string }> = ({ className = "h-6 w-6" }) => (
+  <svg className={className} width="24" height="24" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <title>alias-tokens</title>
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" stroke="currentColor">
+      <path d="m8.25,4.75c1.1046,0,2,.8954,2,2v4.5c0,1.1046.8954,2,2,2h3.75"></path>
+      <circle cx="3.75" cy="4.75" r="2"></circle>
+      <polyline points="13.5 10.5 16.25 13.25 13.5 16"></polyline>
+    </g>
+  </svg>
+);
+
+const Index: React.FC = () => {
   const navigate = useNavigate();
 
   const sections = [
@@ -83,7 +97,7 @@ const Index = () => {
       title: 'Border Radius',
       description: 'Corner radius tokens and utilities',
       icon: <BorderRadiusIcon className="h-6 w-6 text-orange-500" />,
-      path: '/radius'
+      path: '/border-radius'
     },
     {
       title: 'Shadow',
@@ -96,6 +110,12 @@ const Index = () => {
       description: 'Icon library and guidelines',
       icon: <IconsIcon className="h-6 w-6 text-pink-500" />,
       path: '/icons'
+    },
+    {
+      title: 'Alias Tokens',
+      description: 'Semantic tokens that reference base tokens',
+      icon: <AliasTokensIcon className="h-6 w-6 text-cyan-500" />,
+      path: '/aliases'
     }
   ];
 

@@ -2,7 +2,10 @@ import React from 'react';
 import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Button } from '../ui/button';
+import { ChevronLeft } from 'lucide-react';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
+import { useTypographyControl } from '@/contexts/TypographyControlContext';
 import { FontToken } from '@/types/designTokens';
 
 interface TypographyControlSidebarProps {
@@ -23,14 +26,25 @@ export const TypographyControlSidebar: React.FC<TypographyControlSidebarProps> =
   getPreviewContent
 }) => {
   const { system } = useDesignSystem();
+  const { setActiveTypographyControl } = useTypographyControl();
   const font = system.fonts[tokenName as keyof typeof system.fonts] as FontToken;
 
   if (!font) return null;
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium mb-3">{label} Controls</h3>
+      <div className="mt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTypographyControl(null)}
+            className="h-6 w-6 p-0 hover:bg-muted"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h3 className="text-sm font-medium">{label} Controls</h3>
+        </div>
       </div>
 
       <div>

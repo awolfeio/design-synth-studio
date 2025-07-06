@@ -6,6 +6,8 @@ import { Label } from '../ui/label';
 import { Slider } from '../ui/slider';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Switch } from '../ui/switch';
+import { WarningIcon } from '../ui/warning-icon';
 import { ColorToken } from '@/types/designTokens';
 import { HexColorPicker } from 'react-colorful';
 import { hslaToHex, hexToHsla } from '@/lib/colorUtils';
@@ -13,6 +15,8 @@ import { ContrastColorPicker } from './ContrastColorPicker';
 import { generateLchColorScale } from '@/lib/lchColorUtils';
 import { generateEasedSteps, generateDualEasedSteps, generateSmartSaturationSteps, generateDualEasedStepsWithOffsets } from '@/lib/easingUtils';
 import { StepDistributionGraph } from '../Display/StepDistributionGraph';
+import { checkColorStepSimilarity } from '@/lib/deltaEUtils';
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 // Helper function to calculate contrast ratio
 // Convert hex to RGB
@@ -123,25 +127,28 @@ function getWCAGCompliance(contrastRatio: number): {
   };
 }
 
-// Import components for the radio buttons
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-
 interface ColorControlProps {
   tokenName: string;
   label: string;
   showSteps?: boolean;
   showContrastData?: boolean;
+  showEnableSwitch?: boolean;
+  isEnabled?: boolean;
+  onToggleEnabled?: (enabled: boolean) => void;
 }
 
 export const ColorControl: React.FC<ColorControlProps> = ({ 
   tokenName, 
   label, 
   showSteps = false,
-  showContrastData = true
+  showContrastData = true,
+  showEnableSwitch = false,
+  isEnabled = true,
+  onToggleEnabled
 }) => {
   const { system, dispatch, leftColumnWidth, setLeftColumnWidth } = useDesignSystem();
   const { activeColorControl, setActiveColorControl, setControlProps } = useColorControl();
-  const { comparisonColors } = useContrastCheck();
+  const { comparisonColors, deltaECheckEnabled } = useContrastCheck();
   const color = system.colors[tokenName];
   const [isPickerOpen, setIsPickerOpen] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -674,6 +681,9 @@ export const ColorControl: React.FC<ColorControlProps> = ({
     const primaryStepIndex = getPrimaryStepIndex();
     const extraSteps = getExtraStepsCount();
     
+    // Generate all color hex values first for ΔE checking
+    let allSwatchHexValues: string[] = [];
+    
     // Use LCH mode if enabled
     if (system.colorInterpolationMode === 'lch' && showSteps) {
       const lchScale = generateLchColorScale(
@@ -697,6 +707,9 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         color.blackOffset || 0,                       // 18. blackOffset
         color.stepPadding || 1                        // 19. stepPadding
       );
+      
+      // Extract hex values for ΔE checking
+      allSwatchHexValues = lchScale.map(stepColor => stepColor.hex);
       
       // Generate swatches from LCH scale
       for (let i = 0; i < steps; i++) {
@@ -734,6 +747,19 @@ export const ColorControl: React.FC<ColorControlProps> = ({
           };
         }
         
+        // Check for ΔE similarity warnings
+        let deltaEWarning = null;
+        if (deltaECheckEnabled && showSteps) {
+          const similarity = checkColorStepSimilarity(allSwatchHexValues, i);
+          if (similarity.hasSimilarSibling) {
+            deltaEWarning = {
+              hasSimilarSibling: true,
+              similarIndices: similarity.similarIndices,
+              deltaEValues: similarity.deltaEValues
+            };
+          }
+        }
+        
         // Generate step number
         const stepValue = getStepValue(i);
         const stepLabel = `${tokenName}-${stepValue}`;
@@ -756,9 +782,19 @@ export const ColorControl: React.FC<ColorControlProps> = ({
                 className={`w-full h-full border relative p-4 ${isPrimaryStep ? 'border-transparent' : 'border-border'}`}
                 style={{ backgroundColor: swatchHex, borderRadius: '16px' }}
               >
-              {/* Contrast color picker - only show when showContrastData is true */}
+              {/* ΔE Warning Icon with label - positioned at top left */}
+              {deltaEWarning?.hasSimilarSibling && (
+                <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+                  <WarningIcon className={`w-4 h-4 drop-shadow-md ${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'}`} />
+                  <span className={`text-xs font-medium drop-shadow-sm ${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'}`}>
+                    ΔE ≤ {Math.min(...deltaEWarning.deltaEValues).toFixed(1)}
+                  </span>
+                </div>
+              )}
+              
+              {/* Contrast color picker - only show when showContrastData is true, adjusted position if ΔE warning present */}
               {showContrastData && (
-                <div className="absolute top-2 left-2">
+                <div className={`absolute top-2 ${deltaEWarning?.hasSimilarSibling ? 'left-24' : 'left-2'}`}>
                   <ContrastColorPicker 
                     tokenName={tokenName}
                     stepIndex={i}
@@ -868,7 +904,7 @@ export const ColorControl: React.FC<ColorControlProps> = ({
     // and ensure each step has unique lightness values with proper spacing
     
     const primaryLightness = color.lightness;
-    const minLightness = 2;   // Darkest possible
+    const minLightness = 12;   // Darkest possible - not too close to black
     const maxLightness = 98;  // Lightest possible
     // Calculate how much lightness space we have for steps
     const lighterSteps = primaryStepIndex; // Steps lighter than primary
@@ -940,6 +976,16 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         color.alpha
       );
       
+      // Store hex values for ΔE checking if not already done
+      if (allSwatchHexValues.length === 0) {
+        // Generate all hex values for ΔE checking
+        for (let j = 0; j < steps; j++) {
+          const stepL = adjustedValues[j].lightness;
+          const stepS = adjustedValues[j].saturation;
+          allSwatchHexValues.push(hslaToHex(color.hue, stepS, stepL, color.alpha));
+        }
+      }
+      
       // Check for custom comparison color
       const comparisonKey = `${tokenName}-${i}`;
       const customComparisonColor = comparisonColors[comparisonKey];
@@ -973,6 +1019,19 @@ export const ColorControl: React.FC<ColorControlProps> = ({
         };
       }
       
+      // Check for ΔE similarity warnings
+      let deltaEWarning = null;
+      if (deltaECheckEnabled && showSteps) {
+        const similarity = checkColorStepSimilarity(allSwatchHexValues, i);
+        if (similarity.hasSimilarSibling) {
+          deltaEWarning = {
+            hasSimilarSibling: true,
+            similarIndices: similarity.similarIndices,
+            deltaEValues: similarity.deltaEValues
+          };
+        }
+      }
+      
       // Generate step number (25, 50, 100, 200, 300, etc.)
       const stepValue = getStepValue(i);
       const stepLabel = `${tokenName}-${stepValue}`;
@@ -995,9 +1054,19 @@ export const ColorControl: React.FC<ColorControlProps> = ({
               className={`w-full h-full border relative p-4 ${isPrimaryStep ? 'border-transparent' : 'border-border'}`}
               style={{ backgroundColor: swatchHex, borderRadius: '16px' }}
             >
-            {/* Contrast color picker - only show when showContrastData is true */}
+            {/* ΔE Warning Icon with label - positioned at top left */}
+            {deltaEWarning?.hasSimilarSibling && (
+              <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+                <WarningIcon className={`w-4 h-4 drop-shadow-md ${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'}`} />
+                <span className={`text-xs font-medium drop-shadow-sm ${!contrastData.isCustom && contrastData.blackCompliance.AA ? 'text-black' : 'text-white'}`}>
+                  ΔE ≤ {Math.min(...deltaEWarning.deltaEValues).toFixed(1)}
+                </span>
+              </div>
+            )}
+            
+            {/* Contrast color picker - only show when showContrastData is true, adjusted position if ΔE warning present */}
             {showContrastData && (
-              <div className="absolute top-2 left-2">
+              <div className={`absolute top-2 ${deltaEWarning?.hasSimilarSibling ? 'left-24' : 'left-2'}`}>
                 <ContrastColorPicker 
                   tokenName={tokenName}
                   stepIndex={i}
@@ -1106,15 +1175,26 @@ export const ColorControl: React.FC<ColorControlProps> = ({
   
   return (
     <div 
-      className={`mb-8 w-full cursor-pointer rounded-xl p-4 transition-all hover:bg-gray-50/80 active:bg-gray-100/80 ${
+      className={`mb-8 w-full cursor-pointer rounded-xl p-4 transition-colors hover:bg-gray-50/80 active:bg-gray-100/80 ${
         isActive ? 'outline outline-2 outline-black outline-offset-2' : ''
-      }`} 
+      } ${!isEnabled ? 'opacity-50 pointer-events-none' : ''}`} 
       data-color-control={tokenName} 
-      onClick={activateColorControl}
+      onClick={isEnabled ? activateColorControl : undefined}
     >
       <div className="flex items-center mb-4">
-        <Label className="text-lg font-medium">{label}</Label>
-        <div className="flex items-center gap-3 ml-3">
+        <div className="flex items-center gap-3">
+          <Label className="text-lg font-medium">{label}</Label>
+          {showEnableSwitch && onToggleEnabled && (
+            <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+              <Switch 
+                id={`${tokenName}-enabled`}
+                checked={isEnabled}
+                onCheckedChange={onToggleEnabled}
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3 ml-auto">
           <div 
             className="w-8 h-8 rounded-full border border-border"
             style={{ backgroundColor: colorHex }}
@@ -1149,7 +1229,7 @@ export const ColorControl: React.FC<ColorControlProps> = ({
           steps,
           primaryStepIndex,
           color.lightness,
-          tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 2,
+          tokenName === 'success' || tokenName === 'warning' || tokenName === 'destructive' ? 25 : 12,
           98,
           color.lightnessEasingLight || 'ease-out',
           color.lightnessEasingDark || 'ease-in',

@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+1. Do not spin up additional instances of the dev server via `npm run dev`, we have it running at localhost:8080 or localhost:5173.

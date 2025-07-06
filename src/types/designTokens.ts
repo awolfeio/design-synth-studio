@@ -62,20 +62,54 @@ export type FontToken = {
   headingScale?: number; // Only applies to heading fonts
 };
 
+export type TypographyScale = {
+  [key: string]: FontToken; // e.g., { 'sm': FontToken, 'md': FontToken, 'lg': FontToken }
+};
+
+export type TypographyGroup = {
+  baseSize: number; // Base size in pixels
+  scale: number; // Scale multiplier between sizes
+  steps: number; // Number of steps (default 3)
+  family: string; // Font family
+  weight: number; // Font weight
+  lineHeight: number; // Line height
+  letterSpacing: number; // Letter spacing
+  scale_tokens: TypographyScale; // Generated scale tokens
+};
+
 export type FontTokens = {
+  // Legacy single tokens (kept for backward compatibility)
   base: FontToken;
   heading: FontToken;
   mono: FontToken;
-  [key: string]: FontToken;
+  
+  // New typography groups with multiple sizes
+  paragraph: TypographyGroup;
+  span: TypographyGroup;
+  
+  [key: string]: FontToken | TypographyGroup;
 };
 
-export type SpacingScale = number[];
+export type SpacingToken = {
+  baseSize: number; // Base size in pixels (e.g., 16px)
+  scale: number; // Multiplier for each step (e.g., 1.5)
+  steps: number; // Number of steps to generate (e.g., 10)
+  unit: 'px' | 'rem'; // Unit type
+};
 
-export type RadiusTokens = {
-  small: number;
-  medium: number;
-  large: number;
-  full: number;
+export type SpacingScale = {
+  [key: string]: number; // e.g., { 'xs': 4, 'sm': 8, 'md': 16, 'lg': 24, 'xl': 32, ... }
+};
+
+export type RadiusToken = {
+  baseSize: number; // Base radius in pixels (e.g., 8px)
+  scale: number; // Multiplier for each step (e.g., 1.5)
+  steps: number; // Number of steps to generate (e.g., 6)
+  unit: 'px' | 'rem'; // Unit type
+};
+
+export type RadiusScale = {
+  [key: string]: number; // e.g., { 'xs': 2, 'sm': 4, 'md': 8, 'lg': 12, 'xl': 16, '2xl': 24 }
 };
 
 export type ColorInterpolationMode = 'hsl' | 'lch';
@@ -86,11 +120,18 @@ export type DesignSystem = {
   name: string;
   colors: ColorTokens;
   fonts: FontTokens;
-  spacing: SpacingScale;
-  radius: RadiusTokens;
+  spacing: {
+    token: SpacingToken;
+    scale: SpacingScale;
+  };
+  radius: {
+    token: RadiusToken;
+    scale: RadiusScale;
+  };
   isDark: boolean;
   colorInterpolationMode?: ColorInterpolationMode; // Default to 'hsl' if not specified
   iconLibrary?: IconLibrary; // Default to 'lucide' if not specified
+  accentColorEnabled?: boolean; // Whether accent color is enabled in the system
 };
 
 export type ComponentVariant = 'default' | 'outline' | 'ghost' | 'link';

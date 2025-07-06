@@ -81,8 +81,8 @@ export const LeftSidebar: React.FC = () => {
     { id: 'overview', icon: <Layout className="h-4 w-4" />, label: 'Overview', path: '/' },
     { id: 'colors', icon: <ColorSystemIcon className="h-4 w-4" />, label: 'Color System', path: '/colors' },
     { id: 'typography', icon: <Type className="h-4 w-4" />, label: 'Typography', path: '/typography' },
-    { id: 'spacing', icon: <SpacingIcon className="h-4 w-4" />, label: 'Spacing Scale', path: '/spacing' },
-    { id: 'radius', icon: <BorderRadiusIcon className="h-4 w-4" />, label: 'Border Radius', path: '/radius' },
+    { id: 'spacing', icon: <SpacingIcon className="h-4 w-4" />, label: 'Spacing', path: '/spacing' },
+    { id: 'radius', icon: <BorderRadiusIcon className="h-4 w-4" />, label: 'Border Radius', path: '/border-radius' },
     { id: 'shadow', icon: <ShadowIcon className="h-4 w-4" />, label: 'Shadow', path: '/shadow' },
     { id: 'icons', icon: <IconsIcon className="h-4 w-4" />, label: 'Icons', path: '/icons' },
     { id: 'aliases', icon: <AliasTokensIcon className="h-4 w-4" />, label: 'Alias Tokens', path: '/aliases' },
@@ -96,7 +96,7 @@ export const LeftSidebar: React.FC = () => {
   return (
     <div className="w-60 bg-white flex flex-col overflow-hidden rounded-2xl fixed top-3 left-3 bottom-3" style={{ boxShadow: '0 0 4px rgba(0, 0, 0, 0.08), 0 0 16px rgba(0, 0, 0, 0.06), 0 0 24px rgba(0, 0, 0, 0.04)' }}>
       <div className="p-4 font-medium text-sidebar-foreground border-b border-sidebar-border">
-        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900 }}>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px' }}>
           Design Synth Studio
         </span>
       </div>

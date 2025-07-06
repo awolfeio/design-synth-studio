@@ -1,13 +1,16 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useColorControl } from '@/contexts/ColorControlContext';
+import { useTypographyControl } from '@/contexts/TypographyControlContext';
 import { Button } from '@/components/ui/button';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { hslaToHex } from '@/lib/colorUtils';
+import { Type, Code, FileText } from 'lucide-react';
 
 export const PageSidebar: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { activeColorControl, setActiveColorControl } = useColorControl();
+  const { activeTypographyControl, setActiveTypographyControl } = useTypographyControl();
   const { system } = useDesignSystem();
   
   // Get the page title based on the current route
@@ -46,8 +49,17 @@ export const PageSidebar: React.FC<{ children?: React.ReactNode }> = ({ children
     { name: 'border', label: 'Border' }
   ];
 
-  // Handle quick select - select color and smooth scroll to it
-  const handleQuickSelect = (tokenName: string) => {
+  // Define all available typography controls
+  const typographyControls = [
+    { name: 'base', label: 'Base Typography', icon: FileText },
+    { name: 'heading', label: 'Heading Typography', icon: Type },
+    { name: 'paragraph', label: 'Paragraph Typography', icon: FileText },
+    { name: 'span', label: 'Span Typography', icon: Type },
+    { name: 'mono', label: 'Monospace Typography', icon: Code }
+  ];
+
+  // Handle color quick select - select color and smooth scroll to it
+  const handleColorQuickSelect = (tokenName: string) => {
     // Use the programmatic scroll handler from ColorSystem if available
     const programmaticScrollHandler = (window as unknown as { handleProgrammaticColorScroll?: (tokenName: string) => void }).handleProgrammaticColorScroll;
     
@@ -58,6 +70,27 @@ export const PageSidebar: React.FC<{ children?: React.ReactNode }> = ({ children
       setActiveColorControl(tokenName);
       
       const element = document.querySelector(`[data-color-control="${tokenName}"]`);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }
+  };
+
+  // Handle typography quick select - select typography and smooth scroll to it
+  const handleTypographyQuickSelect = (tokenName: string) => {
+    // Use the programmatic scroll handler from Typography if available
+    const programmaticScrollHandler = (window as unknown as { handleProgrammaticTypographyScroll?: (tokenName: string) => void }).handleProgrammaticTypographyScroll;
+    
+    if (programmaticScrollHandler) {
+      programmaticScrollHandler(tokenName);
+    } else {
+      // Fallback to original behavior if handler not available
+      setActiveTypographyControl(tokenName);
+      
+      const element = document.querySelector(`[data-typography-control="${tokenName}"]`);
       if (element) {
         element.scrollIntoView({ 
           behavior: 'smooth', 
@@ -106,13 +139,42 @@ export const PageSidebar: React.FC<{ children?: React.ReactNode }> = ({ children
                     key={name}
                     variant="ghost"
                     className="w-full justify-start h-auto p-3 hover:bg-muted/50"
-                    onClick={() => handleQuickSelect(name)}
+                    onClick={() => handleColorQuickSelect(name)}
                   >
                     <div className="flex items-center gap-3 w-full">
                       <div 
                         className="w-4 h-4 rounded-full border border-border flex-shrink-0"
                         style={{ backgroundColor: getColorHex(name) }}
                       />
+                      <span className="text-sm font-medium text-left">{label}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : location.pathname === '/typography' && !activeTypographyControl ? (
+          /* Show quick select buttons when on Typography page with no typography selected */
+          <div className="py-4">
+            <div className="text-center text-muted-foreground mb-6">
+              <p className="text-sm">Select a typography to configure</p>
+            </div>
+            
+            <div className="space-y-3">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Quick Select
+              </h4>
+              
+              <div className="space-y-2">
+                {typographyControls.map(({ name, label, icon: Icon }) => (
+                  <Button
+                    key={name}
+                    variant="ghost"
+                    className="w-full justify-start h-auto p-3 hover:bg-muted/50"
+                    onClick={() => handleTypographyQuickSelect(name)}
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <span className="text-sm font-medium text-left">{label}</span>
                     </div>
                   </Button>

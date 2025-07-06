@@ -115,13 +115,17 @@ export const ContrastColorPicker: React.FC<ContrastColorPickerProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className={`h-6 w-6 p-0 ${hasComparison ? 'bg-primary/10' : ''}`}
+          className={`h-6 w-6 p-0 ${hasComparison ? 'bg-primary/10' : ''} group`}
           title={hasComparison ? `Comparing with ${comparisonColor}` : 'Select comparison color'}
         >
           {hasComparison ? (
             <div className="w-4 h-4 rounded-full border border-border" style={{ backgroundColor: comparisonColor }} />
           ) : (
-            <Pipette className={`h-3 w-3 ${useWhiteIcon ? 'text-white' : 'text-black'} drop-shadow-sm`} />
+            <Pipette className={`h-3 w-3 drop-shadow-sm transition-colors ${
+              useWhiteIcon 
+                ? 'text-white group-hover:text-black' 
+                : 'text-black group-hover:text-black'
+            }`} />
           )}
         </Button>
       </PopoverTrigger>
