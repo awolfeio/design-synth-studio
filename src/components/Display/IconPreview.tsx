@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, ExternalLink } from 'lucide-react';
+import { Search, ExternalLink, Loader } from 'lucide-react';
 
 // Import icons from each library
 import * as LucideIcons from 'lucide-react';
@@ -420,10 +420,19 @@ const iconSets = {
   }
 };
 
-export const IconPreview: React.FC = () => {
+interface IconPreviewProps {
+  searchQuery?: string;
+}
+
+export const IconPreview: React.FC<IconPreviewProps> = ({ searchQuery: externalSearchQuery }) => {
   const { system } = useDesignSystem();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [displayedIcons, setDisplayedIcons] = useState<Array<[string, React.ComponentType<{ className?: string }>]>>([]);
   const currentLibrary = system.iconLibrary || 'lucide';
+  
+  // Use external search query if provided, otherwise use internal one
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
 
   // Get the appropriate icon set, fallback to lucide if not available
   const iconSet = iconSets[currentLibrary] || iconSets.lucide;
@@ -439,6 +448,43 @@ export const IconPreview: React.FC = () => {
       name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [iconSet, searchQuery]);
+
+  // Progressive loading of icons
+  useEffect(() => {
+    if (isNucleoSelected) return;
+    
+    setIsLoading(true);
+    setDisplayedIcons([]);
+    
+    // Batch load icons for better performance
+    const batchSize = 24; // Load 24 icons at a time
+    let currentIndex = 0;
+    
+    const loadBatch = () => {
+      const nextBatch = filteredIcons.slice(currentIndex, currentIndex + batchSize) as Array<[string, React.ComponentType<{ className?: string }>]>;
+      setDisplayedIcons(prev => [...prev, ...nextBatch]);
+      currentIndex += batchSize;
+      
+      if (currentIndex < filteredIcons.length) {
+        // Continue loading more batches
+        setTimeout(loadBatch, 50); // Small delay between batches
+      } else {
+        setIsLoading(false);
+      }
+    };
+    
+    // Start loading after a small delay
+    setTimeout(loadBatch, 100);
+    
+  }, [filteredIcons, isNucleoSelected]);
+
+  // Skeleton loader component
+  const IconSkeleton = () => (
+    <div className="flex flex-col items-center justify-center p-4 rounded-lg border animate-pulse">
+      <div className="h-6 w-6 mb-2 bg-muted rounded"></div>
+      <div className="h-3 w-12 bg-muted rounded"></div>
+    </div>
+  );
 
   return (
     <div>
@@ -477,21 +523,23 @@ export const IconPreview: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Search icons..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          {externalSearchQuery === undefined && (
+            <div className="mb-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="text"
+                  placeholder="Search icons..."
+                  value={internalSearchQuery}
+                  onChange={(e) => setInternalSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-            {filteredIcons.map(([name, Icon]) => {
+            {displayedIcons.map(([name, Icon]) => {
               const IconComponent = Icon as React.ComponentType<{ className?: string }>;
               return (
                 <div
@@ -505,17 +553,34 @@ export const IconPreview: React.FC = () => {
                 </div>
               );
             })}
+            
+            {/* Skeleton loaders for remaining icons */}
+            {isLoading && Array.from({ length: Math.min(24, filteredIcons.length - displayedIcons.length) }).map((_, index) => (
+              <IconSkeleton key={`skeleton-${index}`} />
+            ))}
           </div>
 
-          {filteredIcons.length === 0 && (
+          {/* Loading indicator */}
+          {isLoading && displayedIcons.length > 0 && (
+            <div className="flex items-center justify-center py-6">
+              <div className="flex items-center gap-2">
+                <Loader className="h-4 w-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading more icons...</span>
+              </div>
+            </div>
+          )}
+
+          {!isLoading && filteredIcons.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No icons found matching "{searchQuery}"</p>
             </div>
           )}
 
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            Showing {filteredIcons.length} of {Object.keys(iconSet).length} icons
-          </div>
+          {!isLoading && (
+            <div className="mt-8 text-center text-sm text-muted-foreground">
+              Showing {displayedIcons.length} of {filteredIcons.length} icons
+            </div>
+          )}
         </>
       )}
     </div>

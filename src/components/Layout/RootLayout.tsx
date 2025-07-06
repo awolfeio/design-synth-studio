@@ -38,30 +38,33 @@ const RootLayoutContent: React.FC<{ children: React.ReactNode }> = ({ children }
   }, [location.pathname, setActiveColorControl, setControlProps, setActiveTypographyControl, setTypographyControlProps]);
 
   // Determine if we should show the right sidebar
-  const showRightSidebar = location.pathname !== '/';
+  const showRightSidebar = location.pathname !== '/' && location.pathname !== '/icons';
+  const isIconsPage = location.pathname === '/icons';
 
   return (
     <div className="min-h-screen">
       <LeftSidebar />
-      <PageSidebar>
-        <Suspense fallback={<ControlSidebarLoader />}>
-          {activeColorControl && controlProps && (
-            <ColorControlSidebar {...controlProps} />
-          )}
-          {activeTypographyControl && !isTypographyGroup && typographyControlProps && (
-            <TypographyControlSidebar {...typographyControlProps} />
-          )}
-          {activeTypographyControl && isTypographyGroup && (
-            <TypographyGroupControlSidebar 
-              groupName={activeTypographyControl} 
-              label={activeTypographyControl === 'paragraph' ? 'Paragraph Typography' : 'Span Typography'} 
-            />
-          )}
-        </Suspense>
-      </PageSidebar>
+      {!isIconsPage && (
+        <PageSidebar>
+          <Suspense fallback={<ControlSidebarLoader />}>
+            {activeColorControl && controlProps && (
+              <ColorControlSidebar {...controlProps} />
+            )}
+            {activeTypographyControl && !isTypographyGroup && typographyControlProps && (
+              <TypographyControlSidebar {...typographyControlProps} />
+            )}
+            {activeTypographyControl && isTypographyGroup && (
+              <TypographyGroupControlSidebar 
+                groupName={activeTypographyControl} 
+                label={activeTypographyControl === 'paragraph' ? 'Paragraph Typography' : 'Span Typography'} 
+              />
+            )}
+          </Suspense>
+        </PageSidebar>
+      )}
       <main className="flex-1" style={{ 
         marginLeft: '292px', 
-        marginRight: showRightSidebar ? '372px' : '12px' 
+        marginRight: isIconsPage ? '0px' : (showRightSidebar ? '372px' : '12px')
       }}>
         {children}
       </main>
