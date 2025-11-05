@@ -639,6 +639,282 @@ const Preview: React.FC = () => {
 
             {/* Component Showcase */}
             <div className="space-y-12 pt-16">
+              {/* Design System Overview */}
+              <section className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-4">Design System Overview</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Color Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Colors
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Primary */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Primary</div>
+                        <div className="flex h-8 rounded overflow-hidden border border-border">
+                          {generateActualColorSteps('primary').slice(0, 8).map((step, i) => (
+                            <div
+                              key={i}
+                              className="flex-1"
+                              style={{ backgroundColor: step.hex }}
+                              title={step.hex}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {generateActualColorSteps('primary').length} steps • {system.colors.primary.hue}° {system.colors.primary.saturation}% {system.colors.primary.lightness}%
+                        </div>
+                      </div>
+                      
+                      {/* Secondary */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Secondary</div>
+                        <div className="flex h-8 rounded overflow-hidden border border-border">
+                          {generateActualColorSteps('secondary').slice(0, 8).map((step, i) => (
+                            <div
+                              key={i}
+                              className="flex-1"
+                              style={{ backgroundColor: step.hex }}
+                              title={step.hex}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {generateActualColorSteps('secondary').length} steps • {system.colors.secondary.hue}° {system.colors.secondary.saturation}% {system.colors.secondary.lightness}%
+                        </div>
+                      </div>
+                      
+                      {/* Accent (if enabled) */}
+                      {accentColorEnabled && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground">Accent</div>
+                          <div className="flex h-8 rounded overflow-hidden border border-border">
+                            {generateActualColorSteps('accent').slice(0, 8).map((step, i) => (
+                              <div
+                                key={i}
+                                className="flex-1"
+                                style={{ backgroundColor: step.hex }}
+                                title={step.hex}
+                              />
+                            ))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {generateActualColorSteps('accent').length} steps • {system.colors.accent.hue}° {system.colors.accent.saturation}% {system.colors.accent.lightness}%
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Utility Colors */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Utility Colors</div>
+                        <div className="flex gap-2">
+                          <div className="flex-1 flex h-8 rounded overflow-hidden border border-border">
+                            {generateActualColorSteps('success').map((step, i) => (
+                              <div
+                                key={i}
+                                className="flex-1"
+                                style={{ backgroundColor: step.hex }}
+                                title={`Success: ${step.hex}`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex-1 flex h-8 rounded overflow-hidden border border-border">
+                            {generateActualColorSteps('warning').map((step, i) => (
+                              <div
+                                key={i}
+                                className="flex-1"
+                                style={{ backgroundColor: step.hex }}
+                                title={`Warning: ${step.hex}`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex-1 flex h-8 rounded overflow-hidden border border-border">
+                            {generateActualColorSteps('destructive').map((step, i) => (
+                              <div
+                                key={i}
+                                className="flex-1"
+                                style={{ backgroundColor: step.hex }}
+                                title={`Destructive: ${step.hex}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Typography Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Type className="h-4 w-4" />
+                        Typography
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Base Typography */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Base</div>
+                        <div 
+                          className="text-sm"
+                          style={{
+                            fontFamily: system.fonts.base.family,
+                            fontSize: `${system.fonts.base.size}px`,
+                            fontWeight: system.fonts.base.weight,
+                            lineHeight: system.fonts.base.lineHeight,
+                            letterSpacing: `${system.fonts.base.letterSpacing}px`
+                          }}
+                        >
+                          The quick brown fox jumps over the lazy dog
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {system.fonts.base.size}px • {system.fonts.base.weight} • {system.fonts.base.lineHeight}lh
+                        </div>
+                      </div>
+                      
+                      {/* Heading Typography */}
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Heading</div>
+                        <div 
+                          className="text-lg font-bold"
+                          style={{
+                            fontFamily: system.fonts.heading.family,
+                            fontSize: `${system.fonts.heading.size}px`,
+                            fontWeight: system.fonts.heading.weight,
+                            lineHeight: system.fonts.heading.lineHeight,
+                            letterSpacing: `${system.fonts.heading.letterSpacing}px`
+                          }}
+                        >
+                          Heading Example
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {system.fonts.heading.size}px • {system.fonts.heading.weight} • Scale: {system.fonts.heading.headingScale || 1.25}x
+                        </div>
+                      </div>
+                      
+                      {/* Paragraph Group */}
+                      {system.fonts.paragraph && 'scale_tokens' in system.fonts.paragraph && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground">Paragraph</div>
+                          <div className="space-y-1">
+                            {Object.entries(system.fonts.paragraph.scale_tokens).map(([size, token]) => (
+                              <div 
+                                key={size}
+                                className="text-xs"
+                                style={{
+                                  fontFamily: token.family,
+                                  fontSize: `${token.size}px`,
+                                  fontWeight: token.weight,
+                                  lineHeight: token.lineHeight
+                                }}
+                              >
+                                {size.toUpperCase()}: Lorem ipsum dolor sit amet
+                              </div>
+                            ))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {system.fonts.paragraph.steps} sizes • Scale: {system.fonts.paragraph.scale}x
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Span Group */}
+                      {system.fonts.span && 'scale_tokens' in system.fonts.span && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground">Span</div>
+                          <div className="space-y-1">
+                            {Object.entries(system.fonts.span.scale_tokens).map(([size, token]) => (
+                              <div 
+                                key={size}
+                                className="text-xs"
+                                style={{
+                                  fontFamily: token.family,
+                                  fontSize: `${token.size}px`,
+                                  fontWeight: token.weight,
+                                  lineHeight: token.lineHeight
+                                }}
+                              >
+                                {size.toUpperCase()}: Lorem ipsum
+                              </div>
+                            ))}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {system.fonts.span.steps} sizes • Scale: {system.fonts.span.scale}x
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Spacing & Radius Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Spacing & Radius
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Spacing Scale */}
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">Spacing Scale</div>
+                        <div className="space-y-1.5">
+                          {Object.entries(system.spacing.scale).slice(0, 6).map(([name, value]) => (
+                            <div key={name} className="flex items-center gap-3">
+                              <div className="text-xs w-12 font-mono text-muted-foreground">{name}</div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <div 
+                                  className="h-4 rounded"
+                                  style={{ 
+                                    width: `${Math.min(value, 64)}px`,
+                                    backgroundColor: primaryColor,
+                                    opacity: 0.3
+                                  }}
+                                />
+                                <div className="text-xs text-muted-foreground">{value}{system.spacing.token.unit}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Base: {system.spacing.token.baseSize}{system.spacing.token.unit} • Scale: {system.spacing.token.scale}x • {system.spacing.token.steps} steps
+                        </div>
+                      </div>
+                      
+                      {/* Radius Scale */}
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">Border Radius</div>
+                        <div className="space-y-1.5">
+                          {Object.entries(system.radius.scale).slice(0, 6).map(([name, value]) => (
+                            <div key={name} className="flex items-center gap-3">
+                              <div className="text-xs w-12 font-mono text-muted-foreground">{name}</div>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-8 h-8 rounded border-2"
+                                  style={{ 
+                                    borderRadius: `${value}px`,
+                                    borderColor: primaryColor
+                                  }}
+                                />
+                                <div className="text-xs text-muted-foreground">{value}{system.radius.token.unit}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Base: {system.radius.token.baseSize}{system.radius.token.unit} • Scale: {system.radius.token.scale}x • {system.radius.token.steps} steps
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+
               {/* Color Swatches */}
               <section className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-4">Color Palette</h2>
@@ -877,65 +1153,129 @@ const Preview: React.FC = () => {
               <section className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-4">Button Components</h2>
                 
-                {/* Default Buttons */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-muted-foreground">Default</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button size="sm">Small</Button>
-                    <Button>Medium</Button>
-                    <Button size="lg">Large</Button>
-                    <Button disabled>Disabled</Button>
-                  </div>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Default Buttons */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Default Buttons</CardTitle>
+                      <CardDescription>Primary action buttons using the primary color</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Button size="sm">Small</Button>
+                        <Button>Medium</Button>
+                        <Button size="lg">Large</Button>
+                        <Button disabled>Disabled</Button>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Uses primary color • Radius: {system.radius.scale.md || 8}px • Spacing: {system.spacing.scale.sm || 8}px
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Outline Buttons */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-muted-foreground">Outline</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="outline" size="sm">Small</Button>
-                    <Button variant="outline">Medium</Button>
-                    <Button variant="outline" size="lg">Large</Button>
-                    <Button variant="outline" disabled>Disabled</Button>
-                  </div>
-                </div>
+                  {/* Outline Buttons */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Outline Buttons</CardTitle>
+                      <CardDescription>Secondary actions with outlined style</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Button variant="outline" size="sm">Small</Button>
+                        <Button variant="outline">Medium</Button>
+                        <Button variant="outline" size="lg">Large</Button>
+                        <Button variant="outline" disabled>Disabled</Button>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Uses primary border color • Radius: {system.radius.scale.md || 8}px
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Ghost Buttons */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-muted-foreground">Ghost</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="ghost" size="sm">Small</Button>
-                    <Button variant="ghost">Medium</Button>
-                    <Button variant="ghost" size="lg">Large</Button>
-                    <Button variant="ghost" disabled>Disabled</Button>
-                  </div>
-                </div>
+                  {/* Ghost Buttons */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Ghost Buttons</CardTitle>
+                      <CardDescription>Subtle actions with minimal styling</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Button variant="ghost" size="sm">Small</Button>
+                        <Button variant="ghost">Medium</Button>
+                        <Button variant="ghost" size="lg">Large</Button>
+                        <Button variant="ghost" disabled>Disabled</Button>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Hover states use primary color • Radius: {system.radius.scale.md || 8}px
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Link Buttons */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-muted-foreground">Link</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="link" size="sm">Small</Button>
-                    <Button variant="link">Medium</Button>
-                    <Button variant="link" size="lg">Large</Button>
-                    <Button variant="link" disabled>Disabled</Button>
-                  </div>
-                </div>
+                  {/* Link Buttons */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Link Buttons</CardTitle>
+                      <CardDescription>Text-only actions styled as links</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Button variant="link" size="sm">Small</Button>
+                        <Button variant="link">Medium</Button>
+                        <Button variant="link" size="lg">Large</Button>
+                        <Button variant="link" disabled>Disabled</Button>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Uses primary color for text • Font: {system.fonts.base.family.split(',')[0]}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                {/* Destructive Buttons */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium text-muted-foreground">Destructive</h3>
-                  <div className="flex flex-wrap gap-3">
-                    <Button variant="destructive" size="sm">Delete</Button>
-                    <Button variant="destructive">Remove</Button>
-                    <Button variant="destructive" size="lg">Destroy</Button>
-                    <Button variant="destructive" disabled>Disabled</Button>
-                  </div>
+                  {/* Destructive Buttons */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Destructive Buttons</CardTitle>
+                      <CardDescription>Dangerous actions using destructive color</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-3">
+                        <Button variant="destructive" size="sm">Delete</Button>
+                        <Button variant="destructive">Remove</Button>
+                        <Button variant="destructive" size="lg">Destroy</Button>
+                        <Button variant="destructive" disabled>Disabled</Button>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Uses destructive color • Hue: {system.colors.destructive.hue}° • {system.colors.destructive.saturation}% saturation
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Badge Showcase */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Badges</CardTitle>
+                      <CardDescription>Status indicators and labels</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>Default</Badge>
+                        <Badge variant="secondary">Secondary</Badge>
+                        <Badge variant="destructive">Destructive</Badge>
+                        <Badge variant="outline">Outline</Badge>
+                      </div>
+                      <div className="pt-2 border-t text-xs text-muted-foreground">
+                        Uses color tokens • Radius: {system.radius.scale.sm || 4}px • Font: {system.fonts.span?.scale_tokens?.sm?.size || system.fonts.base.size}px
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </section>
 
               {/* Card Samples with Date and Tags */}
               <section className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-4">Card Components</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Cards showcase typography, spacing, colors, and radius tokens in real-world examples
+                </p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Blog Post Card */}
@@ -1053,63 +1393,141 @@ const Preview: React.FC = () => {
               </section>
 
               {/* Form Elements */}
-              <section>
+              <section className="space-y-6">
                 <h2 className="text-2xl font-semibold mb-4">Form Elements</h2>
-                <Card>
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Name</Label>
-                      <Input id="name" placeholder="Enter your name" />
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="Enter your email" />
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Select>
-                        <SelectTrigger id="role">
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="guest">Guest</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Switch id="terms" />
-                      <Label htmlFor="terms">Accept terms and conditions</Label>
-                    </div>
-                    
-                    <Button className="w-full">Submit</Button>
-                  </CardContent>
-                </Card>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Form components demonstrating input styling, spacing, and interactive states
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Contact Form</CardTitle>
+                      <CardDescription>Example form with various input types</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" placeholder="Enter your name" />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input id="email" type="email" placeholder="Enter your email" />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="role">Role</Label>
+                        <Select>
+                          <SelectTrigger id="role">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="guest">Guest</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Switch id="terms" />
+                        <Label htmlFor="terms">Accept terms and conditions</Label>
+                      </div>
+                      
+                      <Button className="w-full">Submit</Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Form Specifications</CardTitle>
+                      <CardDescription>Design tokens used in forms</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-3">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Input Padding</span>
+                          <span className="font-mono">{system.spacing.scale.sm || 8}px {system.spacing.scale.md || 16}px</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Input Radius</span>
+                          <span className="font-mono">{system.radius.scale.md || 8}px</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Label Font</span>
+                          <span className="font-mono text-xs">{system.fonts.base.size}px / {system.fonts.base.weight}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Input Font</span>
+                          <span className="font-mono text-xs">{system.fonts.base.size}px / {system.fonts.base.weight}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Field Spacing</span>
+                          <span className="font-mono">{system.spacing.scale.md || 16}px</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Border Color</span>
+                          <span className="font-mono text-xs">Neutrals-{Math.round(system.colors.neutrals.steps * 0.7)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </section>
 
               {/* Tabs */}
-              <section>
-                <h2 className="text-2xl font-semibold mb-4">Tabs</h2>
-                <Tabs defaultValue="account">
-                  <TabsList className="mb-2">
-                    <TabsTrigger value="account">Account</TabsTrigger>
-                    <TabsTrigger value="settings">Settings</TabsTrigger>
-                    <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="account" className="p-4 border rounded-md">
-                    <p>Account tab content with user profile settings and preferences.</p>
-                  </TabsContent>
-                  <TabsContent value="settings" className="p-4 border rounded-md">
-                    <p>Settings tab content with application configuration options.</p>
-                  </TabsContent>
-                  <TabsContent value="notifications" className="p-4 border rounded-md">
-                    <p>Notifications tab content with alert and messaging preferences.</p>
-                  </TabsContent>
-                </Tabs>
+              <section className="space-y-6">
+                <h2 className="text-2xl font-semibold mb-4">Tabs Component</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Tab navigation demonstrating interactive states and content organization
+                </p>
+                
+                <Card>
+                  <CardContent className="pt-6">
+                    <Tabs defaultValue="account">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="account">Account</TabsTrigger>
+                        <TabsTrigger value="settings">Settings</TabsTrigger>
+                        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="account" className="p-4 border rounded-md">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold" style={{ fontFamily: system.fonts.heading.family, fontSize: `${system.fonts.heading.size}px` }}>
+                            Account Settings
+                          </h3>
+                          <p style={{ fontFamily: system.fonts.base.family, fontSize: `${system.fonts.base.size}px`, lineHeight: system.fonts.base.lineHeight }}>
+                            Account tab content with user profile settings and preferences. This demonstrates how typography tokens are applied in tab content.
+                          </p>
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="settings" className="p-4 border rounded-md">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold" style={{ fontFamily: system.fonts.heading.family, fontSize: `${system.fonts.heading.size}px` }}>
+                            Application Settings
+                          </h3>
+                          <p style={{ fontFamily: system.fonts.base.family, fontSize: `${system.fonts.base.size}px`, lineHeight: system.fonts.base.lineHeight }}>
+                            Settings tab content with application configuration options. Notice the consistent spacing and border radius throughout.
+                          </p>
+                        </div>
+                      </TabsContent>
+                      <TabsContent value="notifications" className="p-4 border rounded-md">
+                        <div className="space-y-2">
+                          <h3 className="font-semibold" style={{ fontFamily: system.fonts.heading.family, fontSize: `${system.fonts.heading.size}px` }}>
+                            Notification Preferences
+                          </h3>
+                          <p style={{ fontFamily: system.fonts.base.family, fontSize: `${system.fonts.base.size}px`, lineHeight: system.fonts.base.lineHeight }}>
+                            Notifications tab content with alert and messaging preferences. All components use design system tokens for consistency.
+                          </p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                    
+                    <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                      Tab radius: {system.radius.scale.md || 8}px • Content padding: {system.spacing.scale.md || 16}px • Active tab uses primary color
+                    </div>
+                  </CardContent>
+                </Card>
               </section>
             </div>
           </div>
